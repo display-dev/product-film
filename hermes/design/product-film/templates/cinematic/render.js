@@ -19,7 +19,7 @@ const page = pathToFileURL(path.join(HF, 'beats.html')).href;
   const range = process.env.FRAMES ? process.env.FRAMES.split(':').map(Number) : null;
   for (const [id, T] of Object.entries(all).filter(([id]) => !only || only.includes(id))) {
     const dir = path.join(HF, 'frames', id);
-    if (!range) fs.rmSync(dir, { recursive: true, force: true });
+    if (!range) { fs.rmSync(dir, { recursive: true, force: true }); }
     fs.mkdirSync(dir, { recursive: true }); fs.mkdirSync(path.join(HF, 'seg'), { recursive: true });
     await p.goto(`${page}?beat=${id}`); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(250);
     const n = Math.round(T * FPS), [from, to] = range ? [range[0], Math.min(range[1], n)] : [0, n];

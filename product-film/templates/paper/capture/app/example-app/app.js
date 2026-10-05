@@ -8,7 +8,7 @@ const $ = (html) => { const t = document.createElement('template'); t.innerHTML 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const app = document.getElementById('app');
 const api = async (path, opts = {}) => {
-  const res = await fetch(`/api${path}`, { ...opts, headers: { 'content-type': 'application/json', ...(opts.headers || {}) } });
+  const res = await fetch(`/api${path}`, { ...opts, headers: { 'content-type': 'application/json', ...opts.headers } });
   if (!res.ok) {throw Object.assign(new Error(`${res.status}`), { status: res.status });}
   return (res.headers.get('content-type') || '').includes('json') ? res.json() : res.text();
 };
@@ -40,7 +40,7 @@ async function start() {
 }
 
 // ── published page view ───────────────────────────────────────────────────────────
-async function pageView(session) {
+async function pageView(_session) {
   const page = await api(`/pages/${pageId}`); let shown = page.version;
   app.innerHTML = '';
   const notice = localStorage.getItem('tidewell:notice-dismissed') === 'comments-1' ? null

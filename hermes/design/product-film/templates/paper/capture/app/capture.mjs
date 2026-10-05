@@ -105,7 +105,7 @@ async function closeScene(scene, name) {
 }
 async function run(name, fn) {
   if (want.size && !want.has(name)) {return;}
-  console.log(name); try { await fn(); } catch (e) { report[name] = { ...(report[name] || {}), error: e.message.split('\n')[0] }; console.error(`  FAILED ${name}: ${e.message.split('\n')[0]}`); }
+  console.log(name); try { await fn(); } catch (e) { report[name] = { ...report[name], error: e.message.split('\n')[0] }; console.error(`  FAILED ${name}: ${e.message.split('\n')[0]}`); }
 }
 
 // ── EXAMPLE scenes (the example app). Replace them with your product's; keep the patterns. ───────────────────────────

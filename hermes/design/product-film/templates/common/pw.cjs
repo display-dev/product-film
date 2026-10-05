@@ -9,8 +9,8 @@ const path = require('node:path');
 
 function findUp(start) {
   for (let dir = path.resolve(start); ; dir = path.dirname(dir)) {
-    if (fs.existsSync(path.join(dir, 'node_modules', 'playwright', 'package.json'))) return dir;
-    if (path.dirname(dir) === dir) return null;
+    if (fs.existsSync(path.join(dir, 'node_modules', 'playwright', 'package.json'))) { return dir; }
+    if (path.dirname(dir) === dir) { return null; }
   }
 }
 

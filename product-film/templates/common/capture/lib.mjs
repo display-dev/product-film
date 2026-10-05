@@ -206,7 +206,7 @@ export async function routeApi(context, { isApi, answer, appHosts = [], allowHos
         const r = await answer({ method, url, path: url.pathname, query: url.searchParams, headers: req.headers(), body: req.postData(), buffer: req.postDataBuffer(), json: () => JSON.parse(req.postData() || '{}') }, { hold, mark, events });
         if (!r) { misses.push(call); console.warn('  unmocked API call:', call); return await route.fulfill({ status: 404, headers: cors, contentType: 'application/json', body: JSON.stringify({ error: 'not_mocked', message: `${call} is not answered by the fixtures` }) }); }
         const isJson = r.json !== undefined;
-        return await route.fulfill({ status: r.status ?? 200, headers: { ...cors, ...(r.headers || {}) }, contentType: r.contentType ?? (isJson ? 'application/json' : 'text/plain; charset=utf-8'), body: isJson ? JSON.stringify(r.json) : (r.body ?? '') });
+        return await route.fulfill({ status: r.status ?? 200, headers: { ...cors, ...r.headers }, contentType: r.contentType ?? (isJson ? 'application/json' : 'text/plain; charset=utf-8'), body: isJson ? JSON.stringify(r.json) : (r.body ?? '') });
       }
       const host = url.hostname;
       if (hostIn(host, blockHosts)) {return await route.abort();}
@@ -327,7 +327,7 @@ async function serializeDocument({ inlineAssets, restoreScroll }) {
     }
     // 6. nothing that runs: scripts, preloads of scripts, inline handlers, CSP meta tags
     for (const s of all('script, link[rel="modulepreload"], link[rel="preload"][as="script"], meta[http-equiv="Content-Security-Policy" i]')) {detach(s);}
-    for (const el of all('*')) { for (const a of [...el.attributes]) { if (/^on/i.test(a.name)) {setAttr(el, a.name, null);} } }
+    for (const el of all('*')) { for (const a of Array.from(el.attributes)) { if (/^on/i.test(a.name)) {setAttr(el, a.name, null);} } }
     // 7. assets → data: URLs
     if (inlineAssets) {
       const cache = new Map();
