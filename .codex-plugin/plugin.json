@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Make short product films — hero loops, launch films, walkthroughs, store-listing promos, illustrated story films — as deterministic HTML timelines rendered with Playwright and cut with ffmpeg.",
   "author": { "name": "display.dev", "url": "https://display.dev" },
-  "homepage": "https://github.com/display-dev/product-film",
+  "homepage": "https://display.dsp.so/Zgh7hwEe-product-film",
   "repository": "https://github.com/display-dev/product-film",
   "license": "MIT",
   "keywords": ["product-film", "video", "launch-film", "demo-video", "walkthrough", "motion", "playwright", "ffmpeg", "explainer"],
@@ -13,7 +13,7 @@
     "longDescription": "product-film lets agents make short product films in which the product appears as its own real components, drawn frame by frame from an HTML timeline and rendered deterministically with Playwright and ffmpeg. Four routes: licensed footage cut against cinematic product beats, product beats only, a pointer-driven walkthrough with captions or text cards, and a cut-paper collage in which an illustrated cast tells a story over real UI captured from your code with fictional fixtures. Every route ships a working template, the numbers that held across many review rounds, and checks that catch stuck pointers, one-frame flickers and unreadable captions before anyone watches the cut.",
     "developerName": "display.dev",
     "category": "Design",
-    "websiteURL": "https://github.com/display-dev/product-film",
+    "websiteURL": "https://display.dsp.so/Zgh7hwEe-product-film",
     "logo": "./assets/logo.svg"
   }
 }

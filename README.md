@@ -12,7 +12,7 @@ Ask an agent for a launch film today and you get one of three things: a screen r
 npx skills add display-dev/product-film --skill product-film
 ```
 
-Works across Claude Code, Cursor, Codex, OpenCode, Hermes, and Pi. Rendering needs Node 18+, ffmpeg and (for the paper route) Python 3 on the machine the agent runs on — see [HARNESSES.md](HARNESSES.md).
+Works across Claude Code, Cursor, Codex, OpenCode, Hermes, and Pi. Documentation: [display.dsp.so/Zgh7hwEe-product-film](https://display.dsp.so/Zgh7hwEe-product-film). Rendering needs Node 18+, ffmpeg and (for the paper route) Python 3 on the machine the agent runs on — see [HARNESSES.md](HARNESSES.md).
 
 ## Why product-film?
 
