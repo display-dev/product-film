@@ -33,7 +33,7 @@ product-film/                  ← canonical mount, the only directory humans ed
     ├── new-film.sh            ← starts a film folder for a route
     ├── common/                ← copied into every film folder (Playwright loader, capture library, chart background)
     ├── cinematic/             ← Routes A and B: 3D camera beats
-    ├── walkthrough/           ← Route C: pointer-driven walkthrough, plan-based render, audit
+    ├── walkthrough/           ← Route C (kinetic by default) and the reel style: 2D engine, plan-based render, audit, beat map
     └── paper/                 ← Route D: cut-paper collage engine, kit, capture harnesses, sound, review and delivery tools
 
 skills/product-film/           ← mirror — npm skills (`npx skills add`)

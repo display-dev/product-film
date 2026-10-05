@@ -26,13 +26,14 @@ Works across Claude Code, Cursor, Codex, OpenCode, Hermes, and Pi. Documentation
 
 ## What's inside
 
-### Four routes, three registers
+### Four routes, and the styles they come in
 
 | Route | Register | What it is | Good for |
 |---|---|---|---|
 | A, with footage | Cinematic | Licensed live-action cuts alternate with product beats on a 3D plate with a camera that never stops | Website hero loops |
 | B, pure product | Cinematic | Product beats only, joined by the plate, with captions or end cards | Landing sections, launch teasers |
-| C, walkthrough | Plain or kinetic | A pointer drives the product through one causal story, with captions over one take or text cards between shots; the kinetic style isolates UI at extreme close-up with morphs and kinetic captions | Store-listing promos, feature launches |
+| B, reel | Beat-cut | Claim-and-proof sections cut to the music's bar lines on flat brand plates, one capability per section | Launch reels that show breadth |
+| C, walkthrough | Kinetic | A pointer drives the product through one causal story; isolated UI at extreme close-up, morphs instead of cuts, kinetic captions (a plain cut with a caption band or text cards on request) | Store-listing promos, feature launches |
 | D, paper collage | Illustrated | A cut-paper cast tells a story with a problem, a turn and a payoff over real product screenshots, in stop-motion, in 16:9, 9:16 and 4:5 at once | Social cuts, explainers |
 
 ### Templates
@@ -46,13 +47,13 @@ bash <skill>/templates/new-film.sh walkthrough ~/films/launch
 | Template | Contents |
 |---|---|
 | `cinematic/` | 3D beat engine with camera rig, depth of field and seeded particles; renderer; assembly into master, web, review and poster files |
-| `walkthrough/` | 2D engine with time-warp holds, clip plans for two cuts, captions, cards, pointer and caret; a kinetic-style example (morphs, wet-ink type, a slot reel, a square cut) on the same pipeline; parallel rendering; frame preview; motion audit |
+| `walkthrough/` | 2D engine with time-warp holds, clip plans, pointer and caret; the kinetic example (morphs, wet-ink type, a slot reel, a square cut) and the reel example (sections on a tempo grid, plate wipes, a beat-map tool for your track) on the same pipeline; parallel rendering; frame preview; motion audit |
 | `paper/` | Canvas engine driven by one timeline, a frozen paper kit and jointed cast, capture harnesses for your app, CLI and an agent window, synthesized pen-and-paper sound, review sheets, quality gates and a delivery set |
 | `common/` | Playwright loader, DOM capture and snapshot library, an engraved-chart background generator in your brand color |
 
 ### References
 
-Per-route numbers, engines, gotchas and lessons: [camera rig](product-film/references/camera-rig.md), [walkthrough](product-film/references/walkthrough.md), [kinetic style](product-film/references/kinetic-style.md), [live DOM](product-film/references/live-dom.md), [paper collage](product-film/references/paper-collage.md), [paper capture](product-film/references/paper-capture.md) and [paper lessons](product-film/references/paper-lessons.md).
+Per-route numbers, engines, gotchas and lessons: [camera rig](product-film/references/camera-rig.md), [walkthrough](product-film/references/walkthrough.md), [kinetic style](product-film/references/kinetic-style.md), [reel style](product-film/references/reel-style.md), [live DOM](product-film/references/live-dom.md), [paper collage](product-film/references/paper-collage.md), [paper capture](product-film/references/paper-capture.md) and [paper lessons](product-film/references/paper-lessons.md).
 
 ## Using it
 

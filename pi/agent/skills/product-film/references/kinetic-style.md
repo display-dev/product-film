@@ -1,8 +1,9 @@
 # Kinetic style
 
-A fast, designed register for a Route B or Route C film that should feel made rather than demonstrated: isolated UI
-at extreme close-up on white, morphs instead of cuts, kinetic captions, almost no holds. It changes the look and the
-pacing. It does not change the pointer rules or the flicker rules in `walkthrough.md`.
+The default register for Route C walkthroughs and feature launches, and an option for a Route B film that should feel
+made rather than demonstrated: isolated UI at extreme close-up on white, morphs instead of cuts, kinetic captions,
+almost no holds. It changes the look and the pacing. It does not change the pointer rules or the flicker rules in
+`walkthrough.md`.
 
 The numbers below were measured on a studied reference: a 65 s product launch film at 1080p24, with a music bed and
 no voice. `templates/walkthrough/kinetic.html` is a working example engine (§ Engine notes).
@@ -87,9 +88,9 @@ readability with holds; this style fixes it with scale.
 - **Show results on the product itself.** When an agent changes something, show the change happening in the
   artifact (its header, version chip and page), not as a floating before and after. A centered, struck-through
   headline on white reads as commentary, not as the product. Kinetic captions are for claims, not for product state.
-- **Choose the register per film.** The walkthrough look (`#F3F3F3`, the engraved chart, a browser frame, 1.4–1.9×
-  zooms) and this look (white, isolated components, extreme close-ups) do not mix. If the request does not name
-  one, build one cut in each and let the team pick.
+- **Default to this style.** For a walkthrough or a feature launch, build the kinetic cut. The plain look with a
+  caption band or text cards (`#F3F3F3`, the engraved chart, a browser frame, 1.4–1.9× zooms; `walkthrough.md`
+  § Captions or cards) does not mix with this one; build it only when the user asks for it.
 - **Sound.** The reference gets part of its energy from the music. A kinetic cut must still work with the sound off:
   everything on screen carries the meaning. When the user supplies a track, lay it as a bed (see § Music); composing
   music or a voice-over stays out of scope.

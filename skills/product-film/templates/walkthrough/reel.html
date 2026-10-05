@@ -1,0 +1,501 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<!-- Reel engine (product-film skill, references/reel-style.md). A launch reel cut to music on two flat plates: one claim
+     and the product doing it per section, every section boundary on a bar line. It runs on the walkthrough pipeline:
+     plan-R.json ("page": "reel.html", one clip, no dissolves) with render.js, audit.js, plan-jobs.py, assemble.sh, and
+     previewq.js with PAGE=reel.html.
+     The music grid (BPM, OFFSET) and the section list (bars, plate, entry, kicker, claim) are the first script below.
+     Every time on the page derives from them, so a new track re-times the film in one place: run beatmap.py on the
+     track and paste its BPM and OFFSET. Times inside a section are in beats (B) and half-beats (H) from its bar line;
+     exits (the dive) count back from the section's end, so changing a section's bars adds or removes a hold at its end.
+     window.seek(t) draws film time t from scratch. Each section is its own element, shown only during its bars, so
+     audit.js reads straight across the hard cuts: it compares an element only on frames where it is visible.
+     Example product: Tidewell, a fictional shared-docs app. Replace the sections' content; keep the engine. -->
+<script>
+// ================= the music grid and the sections: re-time the film here =================
+// BPM and OFFSET come from beatmap.py. OFFSET is the film time of the first bar line: 0 when the track is laid from a
+// downbeat (beatmap.py prints that start point). Sections start on bar lines, in this order, and last `bars` bars.
+//   plate: 'dark' or 'light'. in: 'cut' (default, a hard cut on the bar) or 'wipe' (the plate rises from the bottom in
+//   WIPE = 0.1 s and lands on the bar). out: 'dive' (the section's .divew window fills the frame over DIVE = 0.25 s,
+//   then the cut).
+//   kicker/claim: the section's mono kicker and claim. In a claim, ' | ' breaks the line, {…} takes the accent and
+//   […] gets an accent tint. fb: show the "Fictional brands" label.
+const BPM = 126, OFFSET = 0;
+const SECTIONS = [
+  { id: 'range',    bars: 2, plate: 'dark',  fb: true },
+  { id: 'reveal',   bars: 2, plate: 'dark' },
+  { id: 'default',  bars: 2, plate: 'light', claim: 'Feedback lives in five places.', fb: true },
+  { id: 'proof',    bars: 1, plate: 'light', claim: 'Your client opens [one link].', out: 'dive', fb: true },
+  { id: 'comment',  bars: 2, plate: 'dark',  kicker: 'tidewell comments', claim: 'Comment on the exact line.', fb: true },
+  { id: 'versions', bars: 1, plate: 'light', kicker: 'tidewell versions', claim: 'Every version, same link.', in: 'wipe', fb: true },
+  { id: 'verbs',    bars: 1, plate: 'dark',  kicker: 'tidewell share --private', claim: 'Share it your way.' },
+  { id: 'setup',    bars: 1, plate: 'light', claim: 'Start in one line.' },   // 2 bars: a held status row and a longer quiet stretch before the hit
+  { id: 'end',      bars: 2, plate: 'dark' },
+];
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Caveat+Brush&family=Anton&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ===== Brand. Replace with your product's tokens (DESIGN.md, tokens.css, a Tailwind config or the app's CSS custom
+   properties). The two plates and their accents carry the reel; product windows use the UI tokens below them. The
+   Google Fonts link above must load the same families (Caveat Brush, Anton and Instrument Serif are only the example
+   content's fonts: the red-pen labels and the thumbnail docs). Example values: Tidewell. ===== */
+:root{
+  --plate-dark: #0B2E2B;          /* dark plate */
+  --plate-light: #E6F4F1;         /* light plate */
+  --accent: #0E8A7E;              /* accent on light plates and in the product UI */
+  --accent-on-dark: #5FD3C3;      /* accent on dark plates */
+  --text-on-dark: #F1FAF8;
+  --text-on-light: #0B2E2B;       /* claims on light plates take the dark plate's color */
+  --muted-on-dark: rgba(241,250,248,.55);
+  --muted-on-light: rgba(11,46,43,.55);
+  --ink: #121212;                 /* product UI */
+  --on-accent: #FFFFFF;
+  --muted: #6B6B6B;
+  --muted-weak: #A3A3A3;
+  --border: #E5E5E5;
+  --surface: #F7F7F7;
+  --surface-2: #EDEDED;
+  --sel: color-mix(in oklab, var(--accent) 24%, transparent);   /* text selection in the product */
+  --markup: #D8433B;              /* red-pen markup in the problem section */
+  --font: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --font-hand: 'Caveat Brush', cursive;
+}
+/* ===== end of brand block ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--plate-dark)}
+#stage{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;font-family:var(--font);background:var(--plate-dark)}
+.sec{position:absolute;inset:0;display:none;overflow:hidden;isolation:isolate}   /* each section its own stacking context: a wipe covers all of the section below */
+.sec.dark{background:var(--plate-dark);--fg:var(--text-on-dark);--acc:var(--accent-on-dark);--dim:var(--muted-on-dark);--pill:rgba(255,255,255,.08);
+  --shadow:0 36px 90px rgba(0,0,0,.42),0 8px 22px rgba(0,0,0,.22);--plate:var(--plate-dark)}
+.sec.light{background:var(--plate-light);--fg:var(--text-on-light);--acc:var(--accent);--dim:var(--muted-on-light);--pill:transparent;
+  --shadow:0 30px 80px rgba(11,46,43,.16),0 6px 18px rgba(11,46,43,.08);--plate:var(--plate-light)}
+.o{position:absolute}
+.mono{font-family:var(--font-mono)}
+.acc{color:var(--acc)}
+
+/* claim block: kicker (mono, the exact command or feature) over a one- or two-line claim, top-left */
+.cl{position:absolute;left:106px;top:84px;z-index:4;color:var(--fg)}
+.kick{display:inline-block;font:500 21px/1 var(--font-mono);color:var(--dim);padding:8px 12px;margin:0 0 16px -12px;border-radius:8px;background:var(--pill);white-space:pre}
+.light .kick{padding-left:0;padding-right:0;margin-left:0}
+.ct{font-size:68px;font-weight:700;letter-spacing:-.045em;line-height:1.04}
+/* a line rises in from a mask: .ln clips, .li translates up into it */
+.ln{display:block;overflow:hidden;padding:0 .14em .16em 0;margin-bottom:-.16em}
+.li{display:inline-block;white-space:nowrap}
+.tint{position:relative;isolation:isolate}
+.tint::before{content:'';position:absolute;left:-.06em;top:.1em;bottom:.02em;width:calc((100% + .12em) * var(--w,0));background:color-mix(in oklab, var(--acc) 30%, transparent);border-radius:.08em;z-index:-1}
+.car{display:inline-block;width:.07em;height:.84em;margin-left:.05em;vertical-align:-.05em;background:var(--acc);border-radius:2px}
+.fb{position:absolute;right:40px;bottom:30px;font:500 15px/1 var(--font-mono);color:var(--dim);z-index:6;white-space:nowrap}
+
+/* product windows: white, a soft shadow, no border on the plate */
+.win{position:absolute;background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow);color:var(--ink);font-family:var(--font)}
+.divew{position:absolute;inset:0;z-index:5}
+.bch{height:52px;display:flex;align-items:center;gap:9px;padding:0 20px;background:#F3F3F3;border-bottom:1px solid var(--border)}
+.bch>i{width:12px;height:12px;border-radius:50%;background:#D6D6D6;flex:none}
+.url{margin-left:22px;width:560px;height:32px;border-radius:8px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;gap:9px;padding:0 14px;font:500 15px var(--font-mono);color:#4A4A4A;white-space:nowrap}
+.url svg{width:13px;height:13px;flex:none;stroke:#8A8A8A;fill:none;stroke-width:2.2}
+.abar{height:62px;display:flex;align-items:center;gap:14px;padding:0 26px;border-bottom:1px solid var(--border);font-size:17px;white-space:nowrap;background:#fff}
+.awm{font-weight:700;font-size:21px;letter-spacing:-.035em}
+.asep{width:1px;height:22px;background:var(--border)}
+.att{color:var(--muted);font-weight:500}
+.vchip{font:600 14px var(--font-mono);padding:4px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);display:inline-block;min-width:40px;text-align:center}
+.avs{margin-left:auto;display:flex}
+.av{width:32px;height:32px;border-radius:50%;border:2px solid #fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-left:-8px;color:#fff;flex:none}
+.btn{height:34px;padding:0 15px;border-radius:9px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.sec2{border:1px solid var(--border)}
+.lpill{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 13px;border-radius:9px;border:1px solid var(--border);font:500 14px var(--font-mono);color:#3A3A3A}
+.lpill svg{width:14px;height:14px;stroke:var(--accent);fill:none;stroke-width:2.2}
+/* a Tidewell page */
+.pg{padding:52px 80px}
+.pg .eb{font:600 13px var(--font-mono);letter-spacing:.12em;color:var(--muted)}
+.pg h1{font-size:56px;font-weight:700;letter-spacing:-.045em;line-height:1.08;margin-top:14px;white-space:nowrap}
+.pg .ld{font-size:21px;line-height:1.45;color:var(--muted);margin-top:14px;max-width:820px}
+.sts{display:flex;gap:16px;margin-top:34px}
+.st{width:250px;border:1px solid var(--border);border-radius:12px;padding:16px 20px;background:var(--surface)}
+.st .k{font-size:14px;color:var(--muted);font-weight:500}
+.st .v{font-size:36px;font-weight:700;letter-spacing:-.03em;line-height:1.15;margin-top:4px;white-space:nowrap}
+.pg h2{font-size:26px;font-weight:700;letter-spacing:-.03em;margin-top:40px}
+.lks{display:flex;gap:16px;margin-top:16px}
+.lk{width:250px;height:190px;border-radius:12px;position:relative}
+.lk span{position:absolute;left:16px;bottom:14px;font:600 14px var(--font-mono);color:#fff;letter-spacing:.04em}
+.pg .tx{font-size:19px;line-height:1.6;color:#3A3A3A;margin-top:12px;max-width:800px}
+.sm .pg h1{font-size:46px}
+.sm .st,.sm .lk{width:212px}
+.hl{position:relative;display:inline-block;isolation:isolate}
+.hl::before{content:'';position:absolute;left:-3px;top:.06em;bottom:.02em;width:calc((100% + 6px) * var(--w,0));background:var(--sel);border-radius:4px;z-index:-1}
+/* comment rail */
+.rail{position:absolute;right:0;top:62px;bottom:0;width:430px;background:var(--surface);border-left:1px solid var(--border);padding:26px 24px}
+.rail .rh{font-size:15px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px}
+.cm{position:absolute;left:24px;right:24px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.cm .who{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;white-space:nowrap}
+.cm .who .av{margin-left:0;border:0;width:30px;height:30px;font-size:12px}
+.cm .who em{font-style:normal;font-weight:500;color:var(--muted);font-size:14px}
+.cm .say{font-size:19px;line-height:1.4;margin-top:10px;color:#1E1E1E}
+.cm .anc{font:500 13px var(--font-mono);color:var(--accent);margin-bottom:10px;white-space:nowrap}
+/* version history rail */
+.hrow{position:absolute;left:22px;right:22px;height:84px;border-radius:12px;padding:14px 16px;background:#fff;border:1px solid var(--border)}
+.hrow b{font:600 14px var(--font-mono);color:var(--accent)}
+.hrow .hn{font-size:16px;font-weight:600;margin-top:6px;white-space:nowrap}
+.hrow .hm{font-size:13px;color:var(--muted);margin-top:2px;white-space:nowrap}
+
+/* range: the wall of docs */
+.wall{position:absolute;left:138px;top:66px;width:1644px;height:948px;transform-origin:50% 50%}
+.th{position:absolute;width:396px;height:222px;border-radius:9px;overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+.veil{position:absolute;inset:0;background:linear-gradient(90deg,var(--plate-dark) 0%,color-mix(in oklab,var(--plate-dark) 88%,transparent) 42%,color-mix(in oklab,var(--plate-dark) 62%,transparent) 100%);opacity:0}
+.big{position:absolute;left:106px;top:392px;font-size:128px;font-weight:700;letter-spacing:-.05em;line-height:1.02;color:var(--fg);white-space:nowrap}
+/* thumbnail docs (example content: each a small page in its own type and color) */
+.tp{position:absolute;inset:0;padding:14px 16px;overflow:hidden}
+.tp .hd{display:flex;align-items:center;justify-content:space-between;font:600 8.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.tp .hd i{display:inline-block;width:16px;height:2px;margin-left:5px;background:currentColor;opacity:.6;vertical-align:middle}
+.tp .tt{margin-top:12px;line-height:1.02;letter-spacing:-.02em}
+.tp .sb{font-size:10.5px;margin-top:8px;opacity:.75}
+.tp .bt{display:inline-block;margin-top:10px;padding:5px 10px;border-radius:5px;font-size:9px;font-weight:600}
+.tp .rw{display:flex;justify-content:space-between;font-size:11px;padding:7px 0;border-bottom:1px solid currentColor;border-color:color-mix(in oklab,currentColor 18%,transparent)}
+.tp .kp{display:flex;gap:8px;margin-top:12px}
+.tp .kp div{flex:1;border-radius:6px;padding:8px 9px;background:color-mix(in oklab,currentColor 8%,transparent)}
+.tp .kp b{display:block;font-size:22px;letter-spacing:-.03em}
+.tp .kp span{font-size:8.5px;opacity:.7}
+.tp .ck{display:flex;align-items:center;gap:7px;font-size:11px;margin-top:7px}
+.tp .ck i{width:11px;height:11px;border-radius:3px;border:1.5px solid currentColor;flex:none}
+.tp .sw{display:flex;gap:7px;margin-top:12px}
+.tp .sw div{flex:1;height:96px;border-radius:6px;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.tp .sw span{position:absolute;left:5px;bottom:4px;font:500 7px var(--font-mono);color:rgba(0,0,0,.55)}
+.tp .gb{position:relative;height:13px;margin-top:9px;border-radius:4px;background:color-mix(in oklab,currentColor 7%,transparent)}
+.tp .gb i{position:absolute;top:0;bottom:0;border-radius:4px}
+.tp .ch{display:flex;align-items:flex-end;gap:6px;height:104px;margin-top:12px;border-bottom:1px solid color-mix(in oklab,currentColor 25%,transparent)}
+.tp .ch i{flex:1;border-radius:3px 3px 0 0}
+
+/* reveal */
+.rvwm{position:absolute;left:100px;top:300px;font-size:232px;font-weight:700;letter-spacing:-.055em;line-height:1;color:var(--fg);white-space:nowrap;transform-origin:0 0}
+.rvfl{position:absolute;left:110px;top:582px;font:500 27px/1.2 var(--font-mono);color:var(--dim);white-space:pre}
+.tag{position:absolute;left:106px;top:226px;font-size:106px;font-weight:700;letter-spacing:-.05em;line-height:1.03;color:var(--fg)}
+.rvsub{position:absolute;left:108px;top:930px;font:500 24px/1.2 var(--font-mono);color:var(--dim)}
+
+/* the default: three scattered copies of the same feedback, red-penned */
+.dk{position:absolute;left:0;top:0;width:500px;height:330px;background:#fff;border-radius:14px;box-shadow:var(--shadow);color:var(--ink);overflow:visible}
+.dk .in{position:absolute;inset:0;border-radius:14px;overflow:hidden}
+.rp{position:absolute;left:-16px;top:-16px;width:532px;height:362px;overflow:visible;pointer-events:none}
+.rp path{fill:none;stroke:var(--markup);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 1;stroke-dashoffset:1;opacity:0}
+.mk{position:absolute;font:400 38px/1 var(--font-hand);color:var(--markup);white-space:nowrap;transform-origin:0 100%}
+.chat .chd{height:48px;display:flex;align-items:center;padding:0 18px;font-weight:700;font-size:16px;border-bottom:1px solid var(--border);gap:8px}
+.chat .chd span{color:var(--muted);font-weight:500}
+.msg{display:flex;gap:12px;padding:16px 18px}
+.msg .av{margin:0;border:0;width:36px;height:36px;font-size:13px}
+.msg b{font-size:15px}
+.msg em{font-style:normal;color:var(--muted);font-size:13px;margin-left:6px}
+.msg p{font-size:16px;margin-top:3px}
+.shot{margin-top:10px;width:330px;height:150px;border-radius:8px;border:1px solid var(--border);background:#FBFBFB;position:relative;overflow:hidden}
+.mail .mh{padding:18px 22px 12px;border-bottom:1px solid var(--border)}
+.mail .sj{font-size:19px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.mail .fr{font-size:14px;color:var(--muted);margin-top:6px;white-space:nowrap}
+.mail .mb{padding:16px 22px;font-size:16px;line-height:1.45;color:#2A2A2A}
+.att2{display:inline-flex;align-items:center;gap:12px;margin:2px 22px 0;padding:10px 14px 10px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.att2 i{width:34px;height:42px;border-radius:5px;background:#E2574C;color:#fff;font:700 10px var(--font-mono);font-style:normal;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px}
+.att2 b{display:block;font:600 14px var(--font-mono)}
+.att2 span{font-size:12px;color:var(--muted)}
+.doc .dh{padding:20px 24px 0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+.doc .dl{margin:10px 24px 0;height:9px;border-radius:5px;background:#ECECEC}
+.doc .pst{margin:16px 24px 0;padding:10px 14px;border-left:4px solid #C9C9C9;background:#F6F6F6;font-size:15px;line-height:1.45;color:#444;font-style:italic}
+
+/* verbs */
+.vb{position:absolute;left:106px;top:396px;width:1700px}
+.vr{display:flex;gap:78px;height:190px;align-items:flex-start}
+.vw{position:relative;font-size:104px;font-weight:700;letter-spacing:-.05em;line-height:1;color:var(--fg);white-space:nowrap;transform-origin:0 70%}
+.dbox{position:absolute;left:-24px;top:-6px;right:-26px;bottom:-22px;border:3.5px dashed var(--acc);border-radius:16px 22px 14px 24px;transform:rotate(-1.4deg)}   /* hand-drawn: uneven corners, a slight tilt */
+.spk{position:absolute;right:-74px;top:-40px;width:46px;height:46px;fill:var(--acc);opacity:0}
+
+/* setup */
+.scard{position:absolute;left:106px;top:262px;width:1180px;height:260px;border-radius:18px;background:var(--plate-dark);box-shadow:var(--shadow);padding:34px 38px;color:var(--text-on-dark)}
+.scard .lab{font:500 16px var(--font-mono);letter-spacing:.1em;color:var(--muted-on-dark)}
+.fld{margin-top:16px;height:78px;border-radius:12px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 26px;font:500 34px var(--font-mono);color:var(--text-on-dark);white-space:pre}
+.fld .pr{color:var(--accent-on-dark);margin-right:18px}
+.fld .car{background:var(--accent-on-dark)}
+.cpy{position:absolute;left:38px;bottom:30px;height:50px;min-width:236px;padding:0 24px;border-radius:11px;background:var(--accent-on-dark);color:var(--plate-dark);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;white-space:nowrap}
+.cpy.hov{background:color-mix(in oklab,var(--accent-on-dark) 86%,white)}
+.srow{position:absolute;left:106px;top:556px;width:1180px;height:82px;border-radius:14px;background:#fff;border:1px solid color-mix(in oklab,var(--plate-dark) 14%,transparent);display:flex;align-items:center;gap:16px;padding:0 26px;color:var(--ink);white-space:nowrap}
+.srow .dot{width:12px;height:12px;border-radius:50%;background:var(--accent)}
+.srow b{font-size:21px;font-weight:600}
+.srow span{font-size:16px;color:var(--muted)}
+.srow .tg{margin-left:auto;font:500 14px var(--font-mono);letter-spacing:.1em;color:var(--muted)}
+.mc{position:absolute;left:0;top:0;width:42px;height:42px;opacity:0;transform-origin:5px 3px;z-index:9}
+.mc svg{width:42px;height:42px;filter:drop-shadow(0 4px 7px rgba(0,0,0,.25))}
+
+/* end card */
+.ewm{position:absolute;left:144px;top:300px;font-size:190px;font-weight:700;letter-spacing:-.055em;line-height:1;color:var(--fg);white-space:nowrap;transform-origin:0 50%}
+.etg{position:absolute;left:150px;top:528px;font:500 29px/1.45 var(--font-mono);color:var(--fg);opacity:.86}
+.ehr{position:absolute;left:150px;top:650px;width:1620px;height:1px;background:color-mix(in oklab,var(--fg) 24%,transparent);transform-origin:0 50%}
+.efl{position:absolute;left:150px;top:686px;font:500 22px/1.2 var(--font-mono);color:var(--dim);white-space:pre}
+.eurl{position:absolute;right:150px;top:672px;height:52px;padding:0 22px;border-radius:10px;border:1.5px solid color-mix(in oklab,var(--acc) 70%,transparent);display:flex;align-items:center;font:500 22px var(--font-mono);color:var(--acc);white-space:nowrap}
+</style></head><body>
+<div id="stage"></div>
+<script>
+const B = 60 / BPM, H = B / 2, BAR = 4 * B;   // beat, half-beat, bar (4/4)
+const WIPE = .1, DIVE = .25, RISE = .22, CPS = 50;   // plate wipe (starts at most 0.1 s before its bar), dive, line rise (s); burst typing (characters/s)
+{ let n = 0; SECTIONS.forEach((s, i) => { s.i = i; s.t0 = OFFSET + n * BAR; n += s.bars; s.t1 = OFFSET + n * BAR; s.dur = s.t1 - s.t0; }); }
+const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
+const END = SECTIONS[SECTIONS.length - 1].t1;
+const Q = new URLSearchParams(location.search), TOFF = +(Q.get('toff') || 0);
+window.FILM = { SC: 'R', HOLDS: {}, SLOW: 1, R0: TOFF, TOFF, warp: x => x, unwarp: x => x };   // for audit.js: one timeline, no holds
+window.clipDur = (a, b) => Math.min(b ?? END, END) - a; window.END = END;
+window.SECTIONS = SECTIONS.map(s => ({ id: s.id, t0: +s.t0.toFixed(3), t1: +s.t1.toFixed(3), bars: s.bars, plate: s.plate }));   // for previews and the review table
+
+// ================= helpers =================
+const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, u) => a + (b - a) * u, seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const eo = u => 1 - Math.pow(1 - u, 3), eio = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+const bo = u => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); };
+const f2 = x => (+x).toFixed(2);
+function put(el, o) { el.style.transform = `translate(${f2(o.x ?? 0)}px,${f2(o.y ?? 0)}px) scale(${(o.s ?? 1).toFixed(4)})${o.r ? ` rotate(${f2(o.r)}deg)` : ''}`; if (o.op !== undefined) el.style.opacity = o.op; }
+// lines rise in from their mask, one every `step` s from t0
+function rise(lis, T, t0, step = H, d = RISE) { lis.forEach((li, k) => { const u = eo(seg(T, t0 + k * step, t0 + k * step + d)); li.style.transform = u < 1 ? `translateY(${f2(112 * (1 - u))}%)` : ''; }); }
+// a line drops out of its mask
+function sink(li, T, t0, d = .16) { const u = eio(seg(T, t0, t0 + d)); li.style.transform = u > 0 ? `translateY(${f2(112 * u)}%)` : ''; }
+// pop: scale up from `s0` with a small overshoot (opacity only over the first 0.08 s, so nothing appears at full size)
+function pop(el, T, t0, o = {}) { const u = seg(T, t0, t0 + .3); put(el, { x: o.x, y: o.y, r: o.r, s: (u ? lerp(o.s0 ?? .6, 1, bo(u)) : (o.s0 ?? .6)) * (o.s ?? 1), op: seg(T, t0, t0 + .08) }); return u; }
+// burst typing: the first n characters at CPS; stateless
+function type(el, str, T, t0, cps = CPS) { const n = Math.floor(clamp((T - t0) * cps + 1e-6, 0, str.length)); const s = str.slice(0, n); if (el.textContent !== s) el.textContent = s; return n; }
+// the caret blinks on the beat (on for the first half of each beat, on the film's own grid), solid while typing
+function caret(el, t, typing, show = true) { el.style.opacity = !show ? 0 : (typing || ((t - OFFSET) / B % 1 + 1) % 1 < .5) ? 1 : 0; }
+const press = (T, p) => seg(T, p, p + .08) * (1 - seg(T, p + .11, p + .27));   // down, a short flat bottom, release
+// pointer keyframes {t,x,y} in section coordinates; a slight arc between keys
+function cursorAt(T, K) { let a = K[0], b = K[0], idx = 0; if (T >= K[K.length - 1].t) a = b = K[K.length - 1]; else if (T > K[0].t) { for (let i = 0; i < K.length - 1; i++) if (T >= K[i].t && T <= K[i + 1].t) { a = K[i]; b = K[i + 1]; idx = i; break; } }
+  const u = b.t > a.t ? eio(seg(T, a.t, b.t)) : 1, dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, arc = Math.sin(Math.PI * u) * Math.min(30, L * .1) * (idx % 2 ? 1 : -1);
+  return { x: lerp(a.x, b.x, u) - dy / L * arc, y: lerp(a.y, b.y, u) + dx / L * arc }; }
+function cursor(el, T, K, presses, show) { const p = cursorAt(T, K); let pr = 0; for (const q of presses) pr = Math.max(pr, press(T, q));
+  el.style.transform = `translate(${f2(p.x - 5)}px,${f2(p.y - 3)}px) scale(${(1 - .16 * pr).toFixed(3)})`; el.style.opacity = seg(T, show[0], show[0] + .12) * (1 - seg(T, show[1], show[1] + .12)); return p; }
+const inkMix = (from, to, p) => `color-mix(in oklab, ${from} ${Math.round((1 - p) * 100)}%, ${to})`;
+// a hand-drawn rectangle around a w×h box (inset by `m`), seeded so every render draws the same wobble
+function roughRect(w, h, m, seed) { let sd = seed; const r = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296 - .5; };
+  const j = 5, x0 = m + r() * j, y0 = m + r() * j, x1 = w - m + r() * j, y1 = h - m + r() * j;
+  return `M${f2(x0 + 12)} ${f2(y0 + r() * 3)} C${f2(w * .35)} ${f2(y0 - 4 + r() * j)} ${f2(w * .7)} ${f2(y0 + 3 + r() * j)} ${f2(x1)} ${f2(y0 + r() * j)} `
+    + `C${f2(x1 + 3 + r() * j)} ${f2(h * .4)} ${f2(x1 - 2 + r() * j)} ${f2(h * .7)} ${f2(x1 + r() * j)} ${f2(y1)} `
+    + `C${f2(w * .66)} ${f2(y1 + 4 + r() * j)} ${f2(w * .3)} ${f2(y1 - 3 + r() * j)} ${f2(x0)} ${f2(y1 + r() * j)} `
+    + `C${f2(x0 - 3 + r() * j)} ${f2(h * .62)} ${f2(x0 + 3 + r() * j)} ${f2(h * .3)} ${f2(x0 - 4)} ${f2(y0 + 14)}`; }
+const fmt = s => s.replace(/\{([^}]*)\}/g, '<span class="acc">$1</span>').replace(/\[([^\]]*)\]/g, '<span class="tint">$1</span>');
+const lines = (src, cls = 'li') => src.split(' | ').map(l => `<span class="ln"><span class="${cls}">${fmt(l)}</span></span>`).join('');
+const AV = { MC: '#0E8A7E', SR: '#C2703D', PN: '#6C5CE7', JE: '#2F6FB5' };   // avatar colors of the example people
+const av = (k, cls = 'av') => `<span class="${cls}" style="background:${AV[k]}">${k}</span>`;
+const LINK = '<svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>';
+const LOCK = '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const ARROW = '<svg viewBox="0 0 24 24"><path d="M4 2.5v17.2l4.6-4.3 2.9 6.6 3-1.3-2.9-6.5h6.3z" fill="#111" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+
+// ================= the film's content (example: Tidewell) =================
+// Range wall: sixteen believable docs, each its own type and color. Replace them with real captures of the product's
+// range (templates, pages, designs) at fidelity; keep the 4×4 grid or change WALL_COLS.
+const DOCS = [
+  { k: 'hero', bg: '#151515', fg: '#F5F5F0', ac: '#FF6A3D', f: 'Anton', fs: 44, up: 1, brand: 'Alder Outdoor', t: 'Spring | launch plan', s: 'Six weeks, three drops, one story.' },
+  { k: 'table', bg: '#FFFFFF', fg: '#1A1A1A', ac: '#0E8A7E', f: 'Geist', fs: 24, brand: 'Northfield Studio', t: 'Pricing memo', rows: [['Basic', '$9 / mo', 'Solo makers'], ['Plus', '$24 / mo', 'Small teams'], ['Studio', '$60 / mo', 'Agencies']] },
+  { k: 'quote', bg: '#F3EDE3', fg: '#2B2118', ac: '#B5532E', f: 'Instrument Serif', fs: 30, brand: 'Fernhill Bakery', t: 'Client brief', q: 'Bread that tastes like the morning it was baked.' },
+  { k: 'kpi', bg: '#0F1B2D', fg: '#EAF2FF', ac: '#7CC4FF', f: 'Geist', fs: 20, brand: 'Weekly update', t: 'Week 41 at a glance', kp: [['Signups', '1,284'], ['Active', '72%'], ['NPS', '61']] },
+  { k: 'check', bg: '#FFFFFF', fg: '#1A1A1A', ac: '#6C4CF5', f: 'Geist', fs: 21, brand: 'Northfield Studio', t: 'Client onboarding', items: ['Kickoff call booked', 'Brand assets received', 'Analytics access', 'First draft shared'], done: 2 },
+  { k: 'swatch', bg: '#FAF7F2', fg: '#2A2420', ac: '#C8553D', f: 'Instrument Serif', fs: 28, brand: 'Lumen Coffee', t: 'Brand palette', sw: ['#2A2420', '#C8553D', '#E9B44C', '#9DB4A0', '#F2E8DA'] },
+  { k: 'timeline', bg: '#FFFFFF', fg: '#14213D', ac: '#FCA311', f: 'Geist', fs: 21, brand: 'Harbor & Pine', t: 'Q3 roadmap', bars: [[0, .34], [.2, .56], [.46, .8], [.62, 1]] },
+  { k: 'hero', bg: '#FFD84D', fg: '#111111', ac: '#111111', f: 'Anton', fs: 46, up: 1, brand: 'Northfield Studio', t: 'Open | studio night', s: 'Thursday, 6 pm · Run sheet' },
+  { k: 'chart', bg: '#FFFFFF', fg: '#1B1B1B', ac: '#E4572E', f: 'Geist', fs: 19, brand: 'Alder Outdoor', t: 'Retention analysis', v: [.92, .8, .71, .66, .6, .57, .55, .54] },
+  { k: 'quote', bg: '#1C1C1E', fg: '#F2F2F2', ac: '#9AD1C7', f: 'Instrument Serif', fs: 30, it: 1, brand: 'Research notes', t: 'Interview 07', q: '"I just want one place to send the client."' },
+  { k: 'table', bg: '#EEF3FF', fg: '#1D2B53', ac: '#3D5AFE', f: 'Geist Mono', fs: 20, brand: 'Campaign calendar', t: 'October', rows: [['Oct 02', 'Teaser', 'Social'], ['Oct 09', 'Launch', 'Email'], ['Oct 16', 'Case study', 'Blog']] },
+  { k: 'hero', bg: '#E8F0EA', fg: '#1F3A2B', ac: '#3E7C59', f: 'Instrument Serif', fs: 36, brand: 'Harbor & Pine', t: 'A proposal for | the harbor walk', s: 'Prepared by Northfield Studio' },
+  { k: 'kpi', bg: '#FFFFFF', fg: '#222222', ac: '#0E8A7E', f: 'Geist', fs: 20, brand: 'Sprint retro', t: 'What went well', kp: [['Shipped', '14'], ['Carried', '3'], ['Bugs', '2']] },
+  { k: 'check', bg: '#FFF4EC', fg: '#3A2214', ac: '#E2711D', f: 'Geist', fs: 21, brand: 'Launch day', t: 'Run sheet', items: ['9:00 Embargo lifts', '10:00 Email goes out', '12:00 Social thread', '4:00 Recap to client'], done: 3 },
+  { k: 'chart', bg: '#111111', fg: '#F0F0F0', ac: '#C6FF4D', f: 'Geist Mono', fs: 18, brand: 'Traffic report', t: 'Sessions, September', v: [.3, .42, .38, .55, .61, .58, .74, .9] },
+  { k: 'swatch', bg: '#F1ECFF', fg: '#2D1E5F', ac: '#7B5CFA', f: 'Geist', fs: 24, brand: 'Style tiles', t: 'Direction B', sw: ['#2D1E5F', '#7B5CFA', '#C9B8FF', '#FFB86B', '#FFFFFF'] },
+];
+const WALL_COLS = 4, TW = 396, TH = 222, TG = 20;
+function docHTML(d) {
+  const tt = `<div class="tt" style="font-family:'${d.f}';font-size:${d.fs}px;font-weight:${d.f === 'Anton' || d.f === 'Instrument Serif' ? 400 : 700}${d.up ? ';text-transform:uppercase;letter-spacing:0' : ''}${d.it ? ';font-style:italic' : ''}">${d.t.split(' | ').join('<br>')}</div>`;
+  let body = '';
+  if (d.k === 'hero') body = `${tt}<div class="sb">${d.s}</div><div class="bt" style="background:${d.ac};color:${d.bg}">Read the plan →</div>`;
+  if (d.k === 'table') body = `${tt}<div style="margin-top:10px">${d.rows.map(r => `<div class="rw"><b>${r[0]}</b><span>${r[1]}</span><span style="opacity:.6">${r[2]}</span></div>`).join('')}</div>`;
+  if (d.k === 'quote') body = `<div class="sb" style="font:600 9px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:${d.ac};opacity:1;margin-top:14px">${d.t}</div><div class="tt" style="font-family:'${d.f}';font-size:${d.fs}px;font-weight:400;margin-top:8px;line-height:1.08${d.it ? ';font-style:italic' : ''}">${d.q}</div>`;
+  if (d.k === 'kpi') body = `${tt}<div class="kp">${d.kp.map(([a, b], i) => `<div><span>${a}</span><b style="${i === 0 ? `color:${d.ac}` : ''}">${b}</b></div>`).join('')}</div><div class="gb" style="margin-top:14px"><i style="left:0;width:62%;background:${d.ac}"></i></div>`;
+  if (d.k === 'check') body = `${tt}<div style="margin-top:6px">${d.items.map((x, i) => `<div class="ck"><i style="${i < d.done ? `background:${d.ac};border-color:${d.ac}` : ''}"></i><span style="${i < d.done ? 'text-decoration:line-through;opacity:.55' : ''}">${x}</span></div>`).join('')}</div>`;
+  if (d.k === 'swatch') body = `${tt}<div class="sw">${d.sw.map(c => `<div style="background:${c}"><span style="${c === d.sw[0] || c === '#2D1E5F' || c === '#7B5CFA' ? 'color:rgba(255,255,255,.7)' : ''}">${c}</span></div>`).join('')}</div>`;
+  if (d.k === 'timeline') body = `${tt}<div style="margin-top:8px">${d.bars.map(([a, b], i) => `<div class="gb"><i style="left:${a * 100}%;width:${(b - a) * 100}%;background:${i === 2 ? d.ac : 'color-mix(in oklab,currentColor 38%,transparent)'}"></i></div>`).join('')}</div><div class="sb" style="display:flex;justify-content:space-between;font-size:9px"><span>Jul</span><span>Aug</span><span>Sep</span></div>`;
+  if (d.k === 'chart') body = `${tt}<div class="ch">${d.v.map((v, i) => `<i style="height:${v * 100}%;background:${i === d.v.length - 1 ? d.ac : 'color-mix(in oklab,currentColor 30%,transparent)'}"></i>`).join('')}</div>`;
+  return `<div class="tp" style="background:${d.bg};color:${d.fg}"><div class="hd"><span>${d.brand}</span><span><i></i><i></i><i></i></span></div>${body}</div>`;
+}
+// the Tidewell page that the proof, comment and versions sections show (one fictional client brief)
+const PAGE_URL = 'tidewell.example/p/k3v9Q2mx';
+const VERS = [   // the page's versions, oldest first
+  { h1: 'A catalogue for every season.', pieces: '24', who: 'Maya Chen', when: 'Mon 9:12', note: 'First draft' },
+  { h1: 'A catalogue for every season.', pieces: '31', who: 'Sam Rivera', when: 'Tue 2:40', note: 'Seven new pieces' },
+  { h1: 'Out March 14: the spring catalogue.', pieces: '31', who: 'Maya Chen', when: 'just now', note: 'Launch date up top' },
+];
+function pageHTML(o = {}) {
+  return `<div class="pg"${o.id ? ` id="${o.id}"` : ''}><div class="eb">NORTHFIELD STUDIO · CLIENT BRIEF</div>
+    <h1${o.h1id ? ` id="${o.h1id}"` : ''}>${o.h1 || VERS[0].h1}</h1>
+    <p class="ld">The spring catalogue for Alder Outdoor: twenty-four pieces, three looks and one launch date.</p>
+    <div class="sts"><div class="st"><div class="k">Pieces</div><div class="v"${o.pid ? ` id="${o.pid}"` : ''}>${VERS[0].pieces}</div></div><div class="st"><div class="k">Looks</div><div class="v">3</div></div><div class="st"><div class="k">Launch</div><div class="v">Mar 14</div></div></div>
+    <h2>Looks</h2><div class="lks"><div class="lk" style="background:#6E7F5C"><span>01 MOSS</span></div><div class="lk" style="background:#B9785A"><span>02 CLAY</span></div><div class="lk" style="background:#3E6E7E"><span>03 TIDE</span></div></div>
+    <h2>Timeline</h2><p class="tx">Shoot in week six, copy locked in week eight, files to print by March 1. Jordan signs off each look on this page.</p></div>`;
+}
+
+const RANGE_CLAIM = ['Every doc.', 'One link.'];   // the range claim types in over the dimmed wall; the second line takes the accent
+const FEATURES = ['pages', 'comments', 'versions', 'client links'];
+const MARKS = ['lost in thread', 'which version?', 'copied by hand'];   // red-pen labels on the three copies
+const VERBS = [['private', '--private'], ['company', '--company'], ['client', '--client jordan@example.com'], ['public', '--public'], ['expire', '--expire 7d'], ['revoke', '--revoke']];
+const CMD = 'npx tidewell init';
+
+// ================= sections: markup =================
+const HTML = {};
+HTML.range = `<div class="wall" id="wall">${DOCS.map((d, i) => `<div class="th" id="th${i}" style="left:${(i % WALL_COLS) * (TW + TG)}px;top:${Math.floor(i / WALL_COLS) * (TH + TG)}px">${docHTML(d)}</div>`).join('')}</div>
+  <div class="veil" id="veil"></div>
+  <div class="big"><div><span id="rg1"></span><span class="car" id="rgc1"></span></div><div class="acc"><span id="rg2"></span><span class="car" id="rgc2"></span></div></div>`;
+HTML.reveal = `<div class="rvwm" id="rvwm">Tidewell<span class="car" id="rvc"></span></div>
+  <div class="rvfl"><span class="ln" style="padding-bottom:.25em"><span class="li" id="rvfl">${FEATURES.map((f, i) => `<span id="rvf${i}">${i ? ' • ' : ''}${f}</span>`).join('')}</span></span></div>
+  <div class="tag" id="rvtag">${lines('Shared docs for | client work – | {without the} | {email chain.}')}</div>
+  <div class="rvsub">${lines('A shared-docs app for studios and their clients.')}</div>`;
+const DK = {
+  chat: `<div class="chd"># alder-spring <span>· 4 members</span></div><div class="msg">${av('JE')}<div><b>Jordan Ellis</b><em>10:42</em><p>Notes on the brief, see screenshot</p>
+    <div class="shot"><div style="position:absolute;left:18px;top:16px;font:700 15px var(--font);letter-spacing:-.02em">A catalogue for every season.</div>
+    <div style="position:absolute;left:18px;top:46px;width:190px;height:7px;border-radius:4px;background:#E6E6E6"></div><div style="position:absolute;left:18px;top:60px;width:150px;height:7px;border-radius:4px;background:#E6E6E6"></div>
+    <div style="position:absolute;left:18px;top:84px;width:90px;height:46px;border-radius:6px;background:#EFEFEF"></div><div style="position:absolute;left:116px;top:84px;width:90px;height:46px;border-radius:6px;background:#EFEFEF"></div>
+    <div style="position:absolute;left:204px;top:76px;width:106px;height:62px;border:3px solid #E2574C;border-radius:50%;transform:rotate(-8deg)"></div></div></div></div>`,
+  mail: `<div class="mh"><div class="sj">Re: Re: Fwd: Spring brief – notes</div><div class="fr">Jordan Ellis &lt;jordan@example.com&gt; · to Maya, Sam</div></div>
+    <div class="mb">My notes are in the PDF. Use this one, not the one from Friday.</div><div class="att2"><i>PDF</i><div><b>v3_final_FINAL.pdf</b><span>2.4 MB</span></div></div>`,
+  doc: `<div class="dh">Spring brief – draft 4</div><div class="dl" style="width:82%"></div><div class="dl" style="width:64%"></div>
+    <div class="pst">Pasted from Jordan's email, Tuesday: "Can the launch move to the 14th? More notes in the PDF."</div><div class="dl" style="width:74%;margin-top:16px"></div><div class="dl" style="width:52%"></div>`,
+};
+HTML.default = ['chat', 'mail', 'doc'].map((k, i) => `<div class="dk ${k}" id="dk${i}"><div class="in">${DK[k]}</div>
+  <svg class="rp" viewBox="0 0 532 362"><path id="rp${i}" pathLength="1" d="${roughRect(532, 362, 8, 91 + i * 37)}"/></svg><div class="mk" id="mk${i}" style="left:${[250, 236, 262][i]}px;top:-60px">${MARKS[i]}</div></div>`).join('');
+HTML.proof = `<div class="divew"><div class="win" id="pfw" style="left:470px;top:236px;width:1340px;height:790px">
+  <div class="bch"><i></i><i></i><i></i><div class="url">${LOCK}${PAGE_URL}</div></div>
+  <div class="abar"><span class="awm">Tidewell</span><span class="asep"></span><span class="att">Spring catalogue brief</span><span class="att" style="font-size:15px">· Shared with Jordan Ellis</span><span class="avs">${av('MC')}${av('JE')}</span><span class="btn sec2">Comment</span></div>
+  <div style="position:absolute;left:0;right:0;top:115px;bottom:0;overflow:hidden"><div id="pfs">${pageHTML()}</div></div></div></div>`;
+HTML.comment = `<div class="win" id="cmw" style="left:300px;top:272px;width:1480px;height:756px">
+  <div class="abar"><span class="awm">Tidewell</span><span class="asep"></span><span class="att">Spring catalogue brief</span><span class="vchip">v2</span><span class="avs">${av('MC')}${av('SR')}${av('JE')}</span><span class="btn sec2">Share</span></div>
+  <div style="position:absolute;left:0;top:62px;width:1050px;bottom:0;overflow:hidden">${pageHTML({ h1: 'A catalogue for <span class="hl" id="cmhl">every season.</span>' })}</div>
+  <div class="rail"><div class="rh">Comments <span class="vchip" id="cmn" style="min-width:0">0</span></div>
+    <div class="cm" id="cm1" style="top:70px"><div class="anc">"every season."</div><div class="who">${av('JE')}Jordan Ellis <em>Alder Outdoor</em></div><div class="say">Can we lead with the launch date?</div></div>
+    <div class="cm" id="cm2" style="top:262px;left:56px"><div class="who">${av('MC')}Maya Chen <em>just now</em></div><div class="say">Yes – moving it up now.</div></div></div></div>`;
+HTML.versions = `<div class="win" id="vsw" style="left:560px;top:252px;width:1250px;height:776px">
+  <div class="abar"><span class="awm">Tidewell</span><span class="asep"></span><span class="att">Spring catalogue brief</span><span class="vchip" id="vchip">v1</span><span class="lpill" style="margin-left:auto">${LINK}${PAGE_URL}</span><span class="btn pri">Share</span></div>
+  <div class="sm" style="position:absolute;left:0;top:62px;width:860px;bottom:0;overflow:hidden">${pageHTML({ h1id: 'vh1', pid: 'vpc' })}</div>
+  <div class="rail" style="width:390px"><div class="rh">History</div>${VERS.map((v, i) => `<div class="hrow" id="hr${i}"><b>v${i + 1}</b><div class="hn">${v.note}</div><div class="hm">${v.who} · ${v.when}</div></div>`).join('')}</div></div>`;
+HTML.verbs = `<div class="vb">${[0, 1].map(r => `<div class="vr">${VERBS.slice(r * 3, r * 3 + 3).map(([w], j) => { const i = r * 3 + j; return `<div class="vw" id="vw${i}">${w}${i === VERBS.length - 1
+  ? `<div class="dbox" id="vdb"></div><svg class="spk" id="vsp" viewBox="0 0 24 24"><path d="M12 0c.9 6.6 4.8 10.6 12 12-7.2 1.4-11.1 5.4-12 12-.9-6.6-4.8-10.6-12-12 7.2-1.4 11.1-5.4 12-12z"/></svg>` : ''}</div>`; }).join('')}</div>`).join('')}</div>`;
+HTML.setup = `<div class="scard" id="scd"><div class="lab">IN YOUR TERMINAL</div><div class="fld"><span class="pr">$</span><span id="scmd"></span><span class="car" id="scar"></span></div><div class="cpy" id="scpy">Copy command</div></div>
+  <div class="srow" id="srw"><span class="dot" id="sdot"></span><b>Waiting for your first page</b><span>· Northfield Studio</span><span class="tg">CONNECTED</span></div>
+  <div class="mc" id="smc">${ARROW}</div>`;
+HTML.end = `<div class="ewm" id="ewm">Tidewell<span class="car" id="ewc"></span></div>
+  <div class="etg">${lines('shared docs for client work, | without the email chain')}</div>
+  <div class="ehr" id="ehr"></div>
+  <div class="efl">${FEATURES.map((f, i) => `<span id="ef${i}">${i ? '  •  ' : ''}${f}</span>`).join('')}</div>
+  <div class="eurl" id="eurl">tidewell.example</div>`;
+$('stage').innerHTML = SECTIONS.map(s => `<div class="sec ${s.plate}" id="sec-${s.id}">${HTML[s.id] || ''}${s.claim ? `<div class="cl">${s.kicker ? `<div class="kick" id="k-${s.id}">${s.kicker}</div>` : ''}<div class="ct">${lines(s.claim)}</div></div>` : ''}${s.fb ? '<div class="fb">Fictional brands</div>' : ''}</div>`).join('');
+SECTIONS.forEach(s => { s.el = $('sec-' + s.id); s.lis = [...s.el.querySelectorAll('.cl .li')]; });
+
+// ================= sections: timelines. T is seconds from the section's bar line; B a beat, H a half-beat =================
+const FN = {};
+// range: one row of the wall per beat; on bar 2 a veil and the claim types in, its second line a beat later
+FN.range = (T, s) => {
+  DOCS.forEach((d, i) => { const t0 = Math.floor(i / WALL_COLS) * B + (i % WALL_COLS) * .035, u = eo(seg(T, t0, t0 + .22));
+    put($('th' + i), { y: lerp(54, 0, u), s: lerp(.92, 1, u), op: seg(T, t0, t0 + .1) }); });
+  $('wall').style.transform = `scale(${lerp(1, 1.025, seg(T, 0, s.dur)).toFixed(4)})`;   // a slow push-in
+  const V = BAR, L2 = V + B; $('veil').style.opacity = eo(seg(T, V, V + .18)).toFixed(3);
+  type($('rg1'), RANGE_CLAIM[0], T, V); type($('rg2'), RANGE_CLAIM[1], T, L2);
+  caret($('rgc1'), s.t0 + T, T < V + RANGE_CLAIM[0].length / CPS, T >= V && T < L2);
+  caret($('rgc2'), s.t0 + T, T < L2 + RANGE_CLAIM[1].length / CPS, T >= L2);
+};
+// reveal (the drop): the wordmark focus-pulls in; the feature line arrives a word per half-beat; on bar 2 the wordmark
+// shrinks to a header and the tagline rises a line per half-beat
+FN.reveal = (T, s) => {
+  const wm = $('rvwm'), fu = eo(seg(T, 0, .15)), sh = eio(seg(T, BAR, BAR + .16));
+  wm.style.transform = `translate(${f2(lerp(0, 4, sh))}px,${f2(lerp(0, 84 - 300, sh))}px) scale(${(lerp(1, 34 / 232, sh) * lerp(1.05, 1, fu)).toFixed(4)})`;
+  wm.style.filter = fu < 1 ? `blur(${f2(20 * (1 - fu))}px)` : ''; wm.style.opacity = lerp(.35, 1, fu).toFixed(3);
+  caret($('rvc'), s.t0 + T, false);
+  FEATURES.forEach((f, i) => { const ti = (2 + i) * H, e = $('rvf' + i); e.style.visibility = T >= ti ? 'visible' : 'hidden';
+    e.style.color = T >= ti && (i === FEATURES.length - 1 || T < ti + H) ? 'var(--acc)' : ''; });   // the newest word takes the accent
+  sink($('rvfl'), T, BAR);
+  rise([...$('rvtag').querySelectorAll('.li')], T, BAR + .12);   // starts once the shrinking wordmark has cleared line 1
+  rise([...s.el.querySelectorAll('.rvsub .li')], T, BAR + 6 * H);
+};
+// the default: three copies of the same feedback land in a pile on beats 1–3, spread into a row on bar 2, and are
+// red-penned one per half-beat
+const PILE = [[-40, 26, -6], [34, -14, 4], [-4, 34, -2]], PILEX = 710, PILEY = 410, ROWX = [150, 710, 1270], ROWY = 444;
+FN.default = (T) => {
+  const us = eio(seg(T, BAR, BAR + .32));
+  for (let i = 0; i < 3; i++) { const ta = (1 + i) * B, ua = eo(seg(T, ta, ta + .3)), el = $('dk' + i);
+    el.style.visibility = T >= ta ? 'visible' : 'hidden';
+    put(el, { x: lerp(PILEX + PILE[i][0], ROWX[i], us), y: lerp(lerp(1150, PILEY + PILE[i][1], ua), ROWY, us), r: lerp(lerp(PILE[i][2] * 2.5, PILE[i][2], ua), 0, us) });
+    const tr = BAR + (1 + i) * H, ur = eio(seg(T, tr, tr + .2)), rp = $('rp' + i); rp.style.strokeDashoffset = (1 - ur).toFixed(4); rp.style.opacity = ur > 0 ? 1 : 0;
+    pop($('mk' + i), T, tr + .1, { r: -4, s0: .5 }); }
+};
+// proof: the claim's key words get the tint; the page slides up in a browser window and scrolls; then the dive
+FN.proof = (T, s) => {
+  s.el.querySelector('.tint').style.setProperty('--w', eio(seg(T, 2 * H, 2 * H + .2)).toFixed(4));
+  put($('pfw'), { y: lerp(860, 0, eo(seg(T, H, H + .36))) });
+  $('pfs').style.transform = `translateY(${f2(-330 * eio(seg(T, 3 * H, s.dur - DIVE - .04)))}px)`;
+};
+// comment: a selection drags across the headline, the client's comment lands on the bar, the reply a beat later
+FN.comment = (T, s) => {
+  put($('cmw'), { y: lerp(90, 0, eo(seg(T, 0, .34))), s: lerp(1, 1.025, seg(T, .34, s.dur)) });
+  $('cmhl').style.setProperty('--w', eio(seg(T, 4 * H, 6 * H)).toFixed(4));
+  pop($('cm1'), T, 8 * H, { s0: .85 }); pop($('cm2'), T, 10 * H, { s0: .85 });
+  $('cmn').textContent = T >= 10 * H ? '2' : T >= 8 * H ? '1' : '0';
+};
+// versions: v1 → v2 → v3 on half-beats; the page changes with the chip, the history grows, the link stays
+FN.versions = (T) => {
+  const VT = [-Infinity, 2 * H, 4 * H]; let v = 0; VT.forEach((x, i) => { if (T >= x) v = i; });
+  const ch = $('vchip'); ch.textContent = `v${v + 1}`; ch.style.transform = v ? `scale(${lerp(1.5, 1, bo(seg(T, VT[v], VT[v] + .3))).toFixed(3)})` : '';
+  ch.style.color = v ? 'var(--accent)' : ''; ch.style.borderColor = v ? 'color-mix(in oklab, var(--accent) 45%, transparent)' : '';
+  $('vh1').textContent = VERS[v].h1; $('vpc').textContent = VERS[v].pieces;
+  VERS.forEach((_, i) => { const el = $('hr' + i); let y = 54; for (let j = i + 1; j < VERS.length; j++) y += 98 * eio(seg(T, VT[j], VT[j] + .18));
+    const pu = i ? eo(seg(T, VT[i], VT[i] + .2)) : 1; el.style.visibility = T >= VT[i] ? 'visible' : 'hidden';
+    put(el, { y: y + lerp(-24, 0, pu), op: pu }); el.style.borderColor = i === v ? 'color-mix(in oklab, var(--accent) 55%, transparent)' : ''; });
+};
+// verbs: a word per half-beat; the newest takes the accent and the earlier ones settle ("expire" settles dim);
+// the last gets the dashed box and a sparkle. The kicker follows the newest word.
+FN.verbs = (T) => {
+  let cur = 0; VERBS.forEach(([, flag], i) => { const ti = (1 + i) * H, e = $('vw' + i); if (T >= ti) cur = i;
+    pop(e, T, ti, { s0: .55 }); e.style.color = i === VERBS.length - 1 ? 'var(--acc)' : inkMix('var(--acc)', i === 4 ? 'var(--dim)' : 'var(--fg)', seg(T, ti + H, ti + H + .14)); });
+  $('k-verbs').textContent = `tidewell share ${VERBS[cur][1]}`;
+  const tb = VERBS.length * H + .04; $('vdb').style.clipPath = `inset(0 ${f2(100 - 100 * eio(seg(T, tb, tb + .2)))}% 0 0)`;
+  pop($('vsp'), T, tb + .14, { s0: .2, r: lerp(-50, 0, eo(seg(T, tb + .14, tb + .5))) });
+};
+// setup: burst-types the command, the pointer clicks Copy on a half-beat, the status row rises on the next beat
+FN.setup = (T, s) => {
+  put($('scd'), { y: lerp(50, 0, eo(seg(T, 0, .3))) });
+  type($('scmd'), CMD, T, H); caret($('scar'), s.t0 + T, T < H + CMD.length / CPS, T >= H * .5);
+  const btn = $('scpy'), P = 3 * H;
+  btn.textContent = T >= P + .08 ? 'Copied ✓' : 'Copy command'; btn.classList.toggle('hov', T >= P - .1 && T < P + .08);
+  btn.style.transform = `scale(${(1 - .05 * press(T, P)).toFixed(3)})`;
+  const bx = 106 + btn.offsetLeft + btn.offsetWidth / 2, by = 262 + btn.offsetTop + btn.offsetHeight / 2;   // layout offsets ignore transforms
+  // arrive, press, drift off and leave a beat later: timed from the click, so a longer section never parks the pointer
+  cursor($('smc'), T, [{ t: .34, x: bx + 260, y: by + 170 }, { t: P - .04, x: bx + 4, y: by + 6 }, { t: P + .3, x: bx + 7, y: by + 8 }, { t: P + 1.3, x: bx + 40, y: by + 30 }], [P], [.34, P + 1]);
+  const ur = eo(seg(T, 4 * H, 4 * H + .26)); put($('srw'), { y: lerp(26, 0, ur), op: ur.toFixed(3) });
+  $('sdot').style.transform = `scale(${(1 + .4 * (1 - seg((((s.t0 + T - OFFSET) / B) % 1 + 1) % 1, 0, .45))).toFixed(3)})`;   // pulses on the beat
+};
+// end card (the hit): the wordmark focus-pulls in; tagline lines, the hairline, the feature line and the URL follow on half-beats
+FN.end = (T, s) => {
+  const fu = eo(seg(T, 0, .15)), wm = $('ewm'); wm.style.filter = fu < 1 ? `blur(${f2(18 * (1 - fu))}px)` : '';
+  wm.style.transform = `scale(${lerp(1.04, 1, fu).toFixed(4)})`; wm.style.opacity = lerp(.35, 1, fu).toFixed(3);
+  caret($('ewc'), s.t0 + T, false);
+  rise([...s.el.querySelectorAll('.etg .li')], T, H);
+  $('ehr').style.transform = `scaleX(${eio(seg(T, 3 * H, 3 * H + .36)).toFixed(4)})`;
+  FEATURES.forEach((f, i) => { $('ef' + i).style.visibility = T >= (4 + i) * H ? 'visible' : 'hidden'; });
+  pop($('eurl'), T, 8 * H, { s0: .8 });
+};
+
+// ================= engine: transitions and seek =================
+// dive: the section's .divew window scales about its center until it covers the frame, then the bar cuts
+function dive(s, T) { const w = s.el.querySelector('.divew'), win = w.firstElementChild, u = eio(seg(T, s.dur - DIVE, s.dur));
+  if (u <= 0) { w.style.transform = ''; win.style.borderRadius = ''; return; }
+  const cx = win.offsetLeft + win.offsetWidth / 2, cy = win.offsetTop + win.offsetHeight / 2, sc = lerp(1, Math.max(1920 / win.offsetWidth, 1080 / win.offsetHeight), u);
+  w.style.transformOrigin = `${f2(cx)}px ${f2(cy)}px`; w.style.transform = `translate(${f2((960 - cx) * u)}px,${f2((540 - cy) * u)}px) scale(${sc.toFixed(4)})`;
+  win.style.borderRadius = `${f2(14 * (1 - u) / sc)}px`; }
+window.seek = function (t0) { const t = TOFF + t0;
+  for (const s of SECTIONS) {
+    const a = s.i === 0 ? -Infinity : s.t0 - (s.in === 'wipe' ? WIPE : 0), b = s.i === SECTIONS.length - 1 ? Infinity : s.t1;
+    const on = t >= a && t < b; s.el.style.display = on ? 'block' : 'none'; if (!on) continue;
+    const T = t - s.t0;
+    s.el.style.transform = s.in === 'wipe' && T < 0 ? `translateY(${f2(1080 * (1 - eo(seg(T, -WIPE, 0))))}px)` : '';   // a later section sits above the earlier one
+    rise(s.lis, T, 0);
+    FN[s.id] && FN[s.id](T, s);
+    if (s.out === 'dive') dive(s, T);
+  } };
+// every face the page uses, loaded before the first frame (a face used only by a hidden section would otherwise load late)
+window.READY = Promise.all(['400', '500', '600', '700'].map(w => `${w} 20px Geist`).concat(['500 20px "Geist Mono"', '600 20px "Geist Mono"', '400 20px "Caveat Brush"', '400 20px Anton', '400 20px "Instrument Serif"', 'italic 400 20px "Instrument Serif"'])
+  .map(f => document.fonts.load(f, 'Aa1–•·→').catch(() => {}))).then(() => window.seek(0));
+window.seek(0);
+</script></body></html>

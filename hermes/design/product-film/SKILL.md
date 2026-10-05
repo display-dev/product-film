@@ -16,15 +16,16 @@ description: "Make a short product film (website hero loop, landing section, lau
 Builds short product films, silent unless the user supplies a music track, in which the product is shown as its own real components, drawn frame by frame. Four routes in three registers: cinematic (Routes A and B: a 3D plate and a camera that never stops), plain (Route C: a still plate and a pointer that drives the UI) and illustrated (Route D: a cut-paper cast over real product screenshots, in stop-motion).
 
 - **Route A, with footage.** Licensed live-action cuts of people alternate with product beats. Each product beat follows the human action that motivates it.
-- **Route B, pure product.** Product beats only, joined by the plate, with captions or end cards if the surface needs words.
-- **Route C, walkthrough.** A pointer drives the product through one causal story (select, comment, publish, share), with captions over one continuous take (cut A) or full-screen text cards between shots (cut B). Use it for store-listing promos and feature launch films. For a fast, designed feel (isolated UI at extreme close-up on white, morphs instead of cuts, kinetic captions, almost no holds), use the kinetic style.
+- **Route B, pure product.** Product beats only, joined by the plate, with captions or end cards if the surface needs words. For a launch that needs breadth (several capabilities in 25–35 s), the reel style cuts claim-and-proof sections to the music's bar lines on flat brand plates.
+- **Route C, walkthrough.** A pointer drives the product through one causal story (select, comment, publish, share). Use it for store-listing promos and feature launch films. The default register is the kinetic style: isolated UI at extreme close-up on white, morphs instead of cuts, kinetic captions, almost no holds. A plain cut with a caption band over one take, or full-screen text cards between shots, is built only when the user asks for it.
 - **Route D, paper collage.** An illustrated cast (jointed paper puppets, busts, marker doodles, captions on torn paper strips) tells a story with a problem, a turn and a payoff over real product UI: screenshots rendered by the product's own code on fictional data. Use it for social cuts, pinned posts and explainers where people and product appear together.
 
 | Read | When |
 |---|---|
 | `references/camera-rig.md` | Routes A and B, before writing a beat: the rig code and the numbers tuned across sixteen cuts. Do not re-derive them. |
-| `references/walkthrough.md` | Route C, before anything else. The cinematic defaults (3D rig, glows, particles, grain, drift, tilt, a zoom on every beat) were rejected for this register; the reference records what replaced them. |
-| `references/kinetic-style.md` | A Route B or C film that should feel fast and designed. It changes the look and pacing, not the pointer and flicker rules. |
+| `references/walkthrough.md` | Route C, and any kinetic or reel cut, before anything else: the pointer, flicker, current-UI and true-claims rules, the numbers, the engine, the checks and the pipeline they share. The cinematic defaults (3D rig, glows, particles, grain, drift, tilt, a zoom on every beat) were rejected for these films. |
+| `references/kinetic-style.md` | Route C by default, and a Route B film that should feel fast and designed. It changes the look and pacing, not the pointer and flicker rules. |
+| `references/reel-style.md` | A launch reel that shows breadth: claim-and-proof sections cut to the music's bar lines on flat brand plates. |
 | `references/live-dom.md` | Product UI that must move at close range (typing, hover, menus, state changes): capture the real UI as DOM snapshots on fictional data and mount it live instead of rebuilding it. |
 | `references/paper-collage.md` | Route D, before anything else. It replaces the rest of this file for that route. |
 | `references/paper-capture.md` | Route D at the capture step, and any route that captures real UI. |
@@ -59,7 +60,7 @@ Ask only for what cannot be inferred; state assumptions otherwise.
 
 1. **Reference.** A film the user points at. Fetch it, find the video URL, probe it (`ffprobe`: resolution, fps, length, bitrate, audio track, poster, `preload`). The spec becomes the target; the structure becomes the grammar.
 2. **Story in one line and the subject on screen.** Who does what, what the product does in response, who receives the result. The copy on screen: prompt, headline, comments, notification, email.
-3. **Route.** A if people footage is wanted and licensable; B if the film is product-only or footage is out of scope; C if the film shows someone using a flow step by step; D if an illustrated cast should tell a story around the product. For C, also settle the items in `references/walkthrough.md § Settle before building`. For D, settle the brief in `references/paper-collage.md § Settle the brief first`.
+3. **Route.** A if people footage is wanted and licensable; B if the film is product-only or footage is out of scope; C if the film shows someone using a flow step by step (kinetic, unless the user asks for captions or cards); B in the reel style if a launch should show several capabilities cut to music; D if an illustrated cast should tell a story around the product. For C, also settle the items in `references/walkthrough.md § Settle before building`. For D, settle the brief in `references/paper-collage.md § Settle the brief first`.
 4. **Surface and length.** Home hero loop (30 s, silent, poster, `preload="none"`), landing section (20–25 s), social (45–60 s, captions; for Routes A–C the 9:16 reflow is a separate pass, while Route D builds every format at once). A length the user names wins over these defaults.
 5. **Third-party products in the UI** (an AI assistant, a mail client, a chat app): name them in text; do not show their logos unless the user has the right to.
 
@@ -69,7 +70,7 @@ Ask only for what cannot be inferred; state assumptions otherwise.
 bash <skill>/templates/new-film.sh <cinematic|walkthrough|paper> <film folder>
 ```
 
-`cinematic` serves Routes A and B, `walkthrough` serves Route C and the kinetic style, `paper` serves Route D. The script copies the route's template and the shared helpers into the folder, installs Playwright there once if it does not resolve, and runs the route's setup. It never overwrites an existing file.
+`cinematic` serves Routes A and B, `walkthrough` serves Route C (kinetic by default) and the reel style, `paper` serves Route D. The script copies the route's template and the shared helpers into the folder, installs Playwright there once if it does not resolve, and runs the route's setup. It never overwrites an existing file.
 
 Put the film folder outside the repository and outside any temporary or scratch directory: a film takes several sessions, and temporary folders get pruned. The script refuses temporary paths. Keep `NOTES.md` in the folder current: the current cut, the pipeline, what the user rejected and why.
 
@@ -80,8 +81,9 @@ Every product beat is an HTML page that exposes `window.seek(t)` and draws frame
 | Route | Template | Engine |
 |---|---|---|
 | A, B | `templates/cinematic/` | `beats.html` (one `<div class="beat">` per beat, real product markup and CSS inside, 3D world and camera, particles, `seek(t)`, lengths in `window.BEATS`), `render.js` (frames → `seg/<beat>.mp4`; `ONLY=b2` renders one beat, `ONLY=b2 FRAMES=40:60` a few frames for a look), `assemble.sh` (cut list → `film_master.mp4`, `film.mp4`, `film_720.mp4`, `poster.jpg`, `sheet.jpg`) |
-| C | `templates/walkthrough/` | `beats.html` (2D engine with holds, clip plans, captions and cards; plans `plan-A.json` and `plan-B.json`), plan-driven `render.js` and `assemble.sh` at 60 fps with dissolves, `plan-jobs.py` (parallel workers), `previewq.js` (single frames), `audit.js` (pointer rests, one-frame jumps, stateful seeks) |
-| Kinetic | `templates/walkthrough/` | `kinetic.html` with `plan-K.json` (16:9) and `plan-Ksq.json` (square) on the same render, audit and assemble pipeline |
+| C, plain | `templates/walkthrough/` | `beats.html` (2D engine with holds, clip plans, captions and cards for the on-request cuts; plans `plan-A.json` and `plan-B.json`), plan-driven `render.js` and `assemble.sh` at 60 fps with dissolves, `plan-jobs.py` (parallel workers), `previewq.js` (single frames), `audit.js` (pointer rests, one-frame jumps, stateful seeks) |
+| C, kinetic (default) | `templates/walkthrough/` | `kinetic.html` with `plan-K.json` (16:9) and `plan-Ksq.json` (square) on the same render, audit and assemble pipeline |
+| B, reel | `templates/walkthrough/` | `reel.html` with `plan-R.json` on the same pipeline; `beatmap.py` finds a track's tempo and bar lines |
 | D | `templates/paper/` | One canvas per frame from `timeline.json`, a frozen paper kit, capture harnesses for the real UI (the app, its CLI, an agent window), sound synthesis, review, gate and delivery tools; see `references/paper-collage.md` |
 
 Every film folder also gets the shared helpers from `templates/common/`: `pw.cjs` (loads Playwright), `capture/lib.mjs` (boxes from the live DOM, fixture routing, in-flight states, `snapshot()` for live DOM) and `tools/make-chart-bg.mjs` (renders the engraved chart background in the brand colors into `backgrounds/`).
@@ -109,7 +111,7 @@ Route D follows its own gated procedure in `references/paper-collage.md § Proce
 1. **Reference and concept.** Probe the reference. Write a one-page concept: what the film is not, who the protagonist is, the beat sheet, the register of the humans (Route A). Share it for review.
 2. **Storyboard.** Route A: search the footage library (many stock sites block headless browsers; use a headed, persistent browser profile), sample frames, build the storyboard from real frames, all shots from one shoot, every shot 0.5–2 s. Routes B and C: the storyboard is the beat list with the copy per beat.
 3. **Sources.** Route A: the user buys the license and downloads the files (download flows usually defeat automation); sources go in `footage/`. Routes B and C: nothing to fetch.
-4. **Beats.** Start the film folder (§ Start a film); replace the example beats with the product's; build one beat at a time and check it with a contact sheet (`ffmpeg -vf "fps=2.5,scale=480:-1,tile=4x2" -frames:v 1`) before rendering the next. Route C: build both cuts from the same scenes.
+4. **Beats.** Start the film folder (§ Start a film); replace the example beats with the product's; build one beat at a time and check it with a contact sheet (`ffmpeg -vf "fps=2.5,scale=480:-1,tile=4x2" -frames:v 1`) before rendering the next. Route C: build the kinetic cut; build a captions or cards cut only when the user asks. Reel: set the tempo and section bars first (`beatmap.py` on the track), then build the sections on that grid.
 5. **Render** with the template's `render.js`.
 6. **Assemble** with `assemble.sh`: cut list with in-points, durations and per-cut comments; build; look at the whole-film contact sheet at 1 fps. Route C: run the checks in `references/walkthrough.md § Check before every publish`, `audit.js` first.
 7. **Review page.** One HTML page with the 720p cut and the poster embedded as base64 and "What changed since cut vN" on top, published wherever the team reviews work. Republish each cut as a new version of the same page; never a new page per cut. Send the MP4 as a file too. Post frames, not prose, when asking for a decision.
@@ -120,7 +122,7 @@ Route D follows its own gated procedure in `references/paper-collage.md § Proce
 
 - One review page, many versions, the change log on top of each.
 - Before sending any cut, look at four frames of every changed beat at full size: its start, middle, end and the frame after the last change. Clipping at the frame edge and blurred children are the two recurring defects.
-- Route C: `audit.js` reports no problems before any cut is sent. Stuck pointers and one-frame flickers are hard to see in stills and easy for the viewer to see.
+- Every walkthrough-pipeline cut (plain, kinetic, reel): `audit.js` reports no problems before it is sent. Stuck pointers and one-frame flickers are hard to see in stills and easy for the viewer to see.
 - Watch the 720p file once at real speed before sending. Pacing notes come only from watching.
 - An agent cannot hear. When a cut has sound, measure it and say that it needs the user's ears.
 

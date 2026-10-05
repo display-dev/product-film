@@ -1,13 +1,17 @@
 # Walkthrough films (Route C)
 
-A pointer drives the product through one causal story: select, comment, publish, share, and so on. Captions or
-full-screen cards name each step. This is the register for store-listing promos and feature launch films.
+A pointer drives the product through one causal story: select, comment, publish, share, and so on. This is the
+route for store-listing promos and feature launch films, and its default register is the kinetic style
+(`kinetic-style.md`): isolated UI at close range on white, no caption band. This file holds what every film on the
+walkthrough pipeline shares, kinetic and reel cuts included: the pointer, flicker, current-UI and true-claims rules,
+the numbers, the engine patterns, the checks and the pipeline. It also holds the plain look with a caption band or
+text cards, which is built only when the user asks for it.
 
 The rules below come from one store-listing promo that took seven published versions and about twenty renders. Each
 rule closed one review note. Apply them from the first cut. `templates/walkthrough/` has the engine and pipeline with
 every rule below built in.
 
-## The look
+## The plain look (captions and cards, on request)
 
 The cinematic defaults of Routes A and B were rejected for this kind of film, one review round at a time.
 
@@ -25,10 +29,9 @@ The cinematic defaults of Routes A and B were rejected for this kind of film, on
 | The pointer never stops in the middle of a move, and never waits long before the next one. | A pause mid-move, or before the next move, reads as a stuck pointer. |
 | A newly opened panel stays on screen long enough to read. | A panel that closed at once could not be read. |
 
-For a faster, designed register (white plate, isolated components at extreme close-up, morphs and kinetic
-captions, scale instead of holds), read `kinetic-style.md`. It replaces the look rules above for that cut, and its
+These look rules apply to the captions and cards cuts. The kinetic style replaces them and is the default; its
 example engine, `templates/walkthrough/kinetic.html`, runs on the same pipeline. The pointer, flicker, current-UI and
-true-claims rules still apply.
+true-claims rules apply to every cut.
 
 ## Settle before building
 
@@ -48,9 +51,10 @@ true-claims rules still apply.
    extension by <brand>"), and the first shot launches it from the browser's extensions menu.
 6. **Fact-check real-world conventions** (charts, maps, code, legal text) before you show them. Reviewers check.
 
-## Two cuts, one page
+## Captions or cards (on request)
 
-Build both from the same scenes, put them on one review page, and let the team pick.
+Build these only when the user asks for a caption band or text cards; otherwise make a kinetic cut. When asked,
+build both from the same scenes, put them on one review page, and let the team pick.
 
 - **A, captions.** One continuous take per scene. Captions sit in a band at the top, and a new caption cross-fades
   in at each chapter boundary inside the take. One build's cut A ran 47.7 s.
@@ -136,7 +140,7 @@ node <film>/render.js plan-A.json s1:600:780                            # re-ren
 The whole A+B render took about 10 minutes on 5–6 workers. After a change to one scene, re-render only the clips
 that use it.
 
-**Review page.** One page for both cuts, published wherever the team reviews work: one page, many versions, "What
+**Review page.** One page for every cut of the film, published wherever the team reviews work: one page, many versions, "What
 changed since vN" on top; never a new page per cut. Embed each cut once as base64, re-encoded at CRF 23 so the page
 stays under the host's upload limit (50 MB fits most), each with its own poster (A: a caption over the product; B: a
 card). A browser-extension store usually takes the promo as a video-host URL; upload `film-X_master.mp4` or
