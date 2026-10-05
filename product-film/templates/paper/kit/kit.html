@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><title>kit</title>
+<style>html,body{margin:0;background:#888}canvas{display:block}</style></head><body>
+<canvas id="c"></canvas>
+<script type="module">
+// Contact sheet of the frozen kit: every full-body character in every pose, every character as a bust in three faces,
+// tapes, doodles, lettering, a caption strip and every prop. ?v=0|1|2 = boil variant.
+import { C, marker, doodle, lettering, stripOutline, paperPiece, grain } from './kit.js';
+import { CAST, POSES } from './puppet.js';
+import { drawCharacter, drawBust, withShadow } from './rig.js';
+const Q = new URLSearchParams(location.search); const variant = +(Q.get('v') || 0);
+for (const [f, u, w] of [['Geist', 'geist.woff2', '100 900'], ['Geist Mono', 'geist-mono.woff2', '100 900'], ['Caveat Brush', 'caveat-brush.woff2', '400']]) { const ff = new FontFace(f, `url(fonts/${u})`, { weight: w }); await ff.load(); document.fonts.add(ff); }
+const man = await (await fetch('png/manifest.json')).json(); const pieces = {};
+await Promise.all(Object.entries(man).map(([n, meta]) => new Promise((res, rej) => { const i = new Image(); i.onload = () => { pieces[n] = { img: i, meta }; res(); }; i.onerror = () => rej(new Error(n)); i.src = `png/${n}.png`; })));
+const W = 3000, H = 2300; const cv = document.getElementById('c'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d');
+ctx.fillStyle = C.plate; ctx.fillRect(0, 0, W, H);
+const tag = (t, x, y) => lettering(ctx, t, x, y, { size: 38, align: 'center', seed: x + y, variant });
+const COLW = 2300;                                   // characters left of this x, props in a column to the right
+const fulls = Object.entries(CAST).filter(([, c]) => c.kind === 'full'); const poses = Object.keys(POSES);
+const ps = Math.min(1, 1 / Math.max(1, fulls.length)) * 0.8, dx = Math.min(390, (COLW - 100) / poses.length);
+let y = 90 + 560 * ps;
+for (const [id] of fulls) {
+  poses.forEach((p, i) => { const x = 60 + dx * (i + 0.5); ctx.save(); ctx.translate(x, y); ctx.scale(ps, ps); drawCharacter(ctx, pieces, id, p, { k: ps, variant }); ctx.restore(); tag(`${id} · ${p}`, x, y + 330 * ps); });
+  y += 820 * ps;
+}
+const ids = Object.keys(CAST); const bs = Math.min(0.7, (COLW - 100) / (ids.length * 3) / 330); const bdx = (COLW - 100) / (ids.length * 3); const by = Math.min(y + 240 * bs / 0.7, 1880);
+ids.forEach((id, j) => ['smile', 'grin', 'worried'].forEach((face, f) => { const x = 60 + bdx * (j * 3 + f + 0.5); ctx.save(); ctx.translate(x, by); ctx.scale(bs, bs); drawBust(ctx, pieces, id, { k: bs, face, variant }); ctx.restore(); lettering(ctx, f ? face : `${id} · ${face}`, x, by + 44, { size: 30, align: 'center', seed: x, variant }); }));
+// props in a column on the right
+let py = 90; const px = COLW + 60;
+for (const n of Object.keys(man).filter((n) => !n.includes('.') && n !== 'pin')) { const pc = pieces[n]; const s = Math.min(1, 300 / pc.meta.w, 110 / pc.meta.h); if (py + pc.meta.h * s > H - 60) break; ctx.save(); ctx.translate(px - pc.meta.x * s, py - pc.meta.y * s); ctx.scale(s, s); withShadow(ctx, s, () => ctx.drawImage(pc.img, pc.meta.x, pc.meta.y, pc.meta.w, pc.meta.h)); ctx.restore(); lettering(ctx, n, px + 320, py + 40, { size: 30, seed: py, variant }); py += pc.meta.h * s + 24; }
+// doodles, lettering and a caption strip along the bottom
+const dd = [doodle.circle(160, 2060, 150, 60, 4), doodle.arrow(380, 2170, 530, 2060, 5), doodle.cross(640, 2110, 70, 6), doodle.tick(760, 2110, 70, 7), doodle.question(880, 2110, 90, 8), doodle.underline(170, 2200, 160, 9), doodle.star(1000, 2110, 30, 10)];
+dd.forEach((d, i) => marker(ctx, d, { w: 6.5, color: i === 0 || i === 3 ? C.accent : C.ink, seed: 20 + i + variant * 97 }));
+lettering(ctx, 'same link – v2', 1100, 2130, { size: 56, seed: 30, variant });
+ctx.save(); ctx.font = '500 52px "Geist Mono"'; const text = 'Jordan opens it with one link.'; const tw = ctx.measureText(text).width; const sw = tw + 70, sh = 84;
+const st = paperPiece(stripOutline(sw, sh, 51), { color: C.strip, seed: 51, S: 2, amp: 0.55, fibreWidth: 1.1, wave: 30 }); ctx.translate(1500, 2060); ctx.rotate(-0.008);
+withShadow(ctx, 1, () => ctx.drawImage(st.canvas, st.x, st.y, st.w, st.h)); let cx = 35; ctx.textBaseline = 'middle';
+for (const word of text.split(' ')) { const acc = word.replace(/[.,?]/g, '') === 'link'; ctx.fillStyle = acc ? C.accent : C.ink; ctx.font = `${acc ? 600 : 500} 52px "Geist Mono"`; ctx.fillText(word, cx, sh / 2 + 2); cx += ctx.measureText(word + ' ').width; }
+ctx.restore();
+document.title = 'ready';
+</script></body></html>

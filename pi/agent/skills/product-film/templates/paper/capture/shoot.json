@@ -1,0 +1,5 @@
+[
+  { "page": "capture/artifact/spring-launch-plan.v1.html", "file": "page-draft.png", "kind": "desktop", "manifest": "page",
+    "state": "EXAMPLE: the page as a raw draft in a browser before it is published (the hook)",
+    "boxes": { "nav": "box:.nav", "headline": "box:main h1", "headlineInk": "ink:main h1", "lede": "box:.lede", "kickoff": "box:.kickoff", "kickoffDateInk": "ink:.kickoff b", "word_kickoff": "words:.kickoff|Kickoff", "plan": "box:.plan" } }
+]

@@ -1,0 +1,93 @@
+<!doctype html><html><head><meta charset="utf-8"><title>drawing</title>
+<!-- Engraved chart background: a 19th-century-style nautical chart, drawn deterministically on a canvas.
+     A valley composition: dense in the bottom corners, rising up the sides, the centre clear for product UI and text.
+     Chart conventions (INT 1, sections C and I, and water-lining practice): a firm ink coastline; 18 continuous
+     engraved water lines parallel to the coast, each gap 1.2× the one before, with a slight hand wobble; dotted
+     fathom lines at 3, 5 and 10 fathoms; sparse soundings in sloping figures with fractions; cliff hachures only on
+     the steep coast (C3) and sandy-shore dots on the flat stretch (C6). No sandbanks: stippled banks read as noise.
+     Render it with tools/make-chart-bg.mjs (16:9 at 3840×2160 and a transparent lines-only copy), or open it at
+     1920×1080 with device scale factor 2. document.title becomes "done" when drawing finishes.
+     URL parameters (all optional; colours are any CSS colour, # written as %23):
+       accent=%230E8A7E   the water lines (the product accent)
+       ink=%23121212      coastline, marks and figures
+       plate=%23F3F3F3    the plate (ignored with transparent)
+       transparent        lines only, on transparency (screenshot with omitBackground)
+       font=Geist         family for the soundings (Google Fonts, unless the page receives window.CHART_FONT, a
+                          font file as a data: URL; make-chart-bg.mjs passes the film's own Geist when it has one) -->
+<style>html,body{margin:0;background:transparent;overflow:hidden}canvas{display:block;width:1920px;height:1080px}</style></head><body>
+<canvas id="c" width="3840" height="2160"></canvas>
+<script>
+const Q = new URLSearchParams(location.search);
+// ── BRAND: defaults are the template's example product. Pass your product's tokens as URL parameters instead. ──
+const BRAND = { accent: Q.get('accent') || '#0E8A7E', ink: Q.get('ink') || '#121212', plate: Q.get('plate') || '#F3F3F3', font: Q.get('font') || 'Geist' };
+const TRANSPARENT = Q.has('transparent');
+// Any CSS colour → [r, g, b] (sRGB, 0–255), by painting one pixel.
+const rgbOf = (css) => { const k = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); k.fillStyle = '#000'; k.fillStyle = css; k.fillRect(0, 0, 1, 1); return [...k.getImageData(0, 0, 1, 1).data.slice(0, 3)]; };
+const [ar, ag, ab] = rgbOf(BRAND.accent), [ir, ig, ib] = rgbOf(BRAND.ink);
+const GA = (a) => `rgba(${ar},${ag},${ab},${a})`, INK = (a) => `rgba(${ir},${ig},${ib},${a})`;
+const FONT = `"${BRAND.font}"`;
+
+const c = document.getElementById('c'); let g = c.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0);
+if (!TRANSPARENT) { g.fillStyle = BRAND.plate; g.fillRect(0, 0, 1920, 1080); }
+// seeded noise: one seed, one chart
+let sd = 97; const rn = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
+const PP = new Uint8Array(512); { const p = [...Array(256).keys()]; for (let i = 255; i > 0; i--) { const j = Math.floor(rn() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } for (let i = 0; i < 512; i++) PP[i] = p[i & 255]; }
+const HH = (x, y) => PP[(PP[x & 255] + (y & 255)) & 511] / 255, sm = (t) => t * t * (3 - 2 * t);
+function vn(x, y) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, a = HH(xi, yi), b = HH(xi + 1, yi), e = HH(xi, yi + 1), d = HH(xi + 1, yi + 1), u = sm(xf), v = sm(yf); return a + (b - a) * u + (e - a) * v + (a - b - e + d) * u * v; }
+function fbm(x, y, o = 4) { let s = 0, a = 0.5, f = 1, n = 0; for (let i = 0; i < o; i++) { s += a * vn(x * f + i * 17.3, y * f + i * 9.1); n += a; a *= 0.5; f *= 2; } return s / n; }
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+// the coast: a valley across the frame, and its slope
+const yb = (X) => 1005 - 350 * Math.pow((X - 960) / 960, 2) + 20 * Math.sin(X * 0.0062) + 9 * Math.sin(X * 0.017);
+const ybd = (X) => -700 * (X - 960) / (960 * 960) + 20 * 0.0062 * Math.cos(X * 0.0062) + 9 * 0.017 * Math.cos(X * 0.017);
+// density field: high on land and near the coast, fading offshore (drives the valley mask)
+const F = (X, Y) => { const d = yb(X) - Y; return d <= 0 ? 0.74 + 0.16 * Math.sin(X * 0.011) * Math.cos(Y * 0.012) : 0.62 * Math.exp(-d / 72) * (1 + 0.18 * Math.sin(X * 0.02)); };
+
+// ---------- chart helpers (INT 1 conventions) ----------
+const nrm = (x) => { const s = ybd(x), L = Math.hypot(1, s); return [-s / L, 1 / L]; };            // unit normal into the water
+const offPts = (d, wob = 0, k = 0) => { const P = []; for (let x = -60; x <= 1980; x += 3) { const [nx, ny] = nrm(x), w = wob ? wob * (Math.sin(x * 0.041 + k * 1.9) + 1.2 * (fbm(x * 0.008, k * 0.43) - 0.5)) : 0; P.push([x + nx * (d + w), yb(x) + ny * (d + w)]); } return P; };
+const strokePts = (P) => { g.beginPath(); let pen = false; for (const p of P) { if (!p) { pen = false; continue; } if (pen) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); pen = true; } g.stroke(); };
+const sdist = (x, y) => (y - yb(x)) / Math.hypot(1, ybd(x));                                         // distance from the coastline
+const DEP = (x, y) => -1.6 + 0.9 * Math.pow(Math.max(0, sdist(x, y)) / 10, 1.15) * (0.84 + 0.32 * fbm(x * 0.003 + 5, y * 0.003 + 2)); // metres below datum
+const contourPts = (lv) => { const P = []; let last = null; for (let x = -20; x <= 1940; x += 4) { let f = null; for (let y = (last ? Math.max(yb(x), last - 40) : yb(x)); y < 1110; y += 1.5) { if (DEP(x, y) >= lv) { f = y; break; } } last = f; P.push(f == null ? null : [x, f]); } return P; };
+let OCC = []; const free = (x, y, w, h) => !OCC.some((o) => x < o[0] + o[2] && x + w > o[0] && y < o[1] + o[3] && y + h > o[1]), occupy = (x, y, w, h) => OCC.push([x, y, w, h]);
+function coastline(col, w, wob = 0) { g.strokeStyle = col; g.lineWidth = w; g.lineJoin = 'round'; strokePts(offPts(0, wob, 99)); }
+function shoreDetail(col) {
+  g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 0.9; g.beginPath();
+  for (let x = 0; x <= 1920; x += 5) { const s = Math.abs(ybd(x)), [nx, ny] = nrm(x), y = yb(x); if (s > 0.42) { const l = 5 + 4 * fbm(x * 0.05, 7); g.moveTo(x - nx * 1.5, y - ny * 1.5); g.lineTo(x - nx * (1.5 + l), y - ny * (1.5 + l)); } }
+  g.stroke();                                                                                                   // C3 cliffs: hachures on the steep coast only
+  g.beginPath(); for (let x = 0; x <= 1920; x += 2.2) { if (Math.abs(ybd(x)) > 0.22) continue; const [nx, ny] = nrm(x), t = 2 + rn() * 5; const X = x - nx * t, Y = yb(x) - ny * t; g.moveTo(X + 0.6, Y); g.arc(X, Y, 0.6, 0, 6.2832); }
+  g.fill();                                                                                                     // C6 sandy shore: dots
+}
+function sounding(x, y, D) {                                                                                    // I10, in fathoms with quarter fractions
+  g.fillStyle = INK(0.85); g.textBaseline = 'alphabetic';
+  const f = D / 1.8288, wh = Math.floor(f), fr = ['', '¼', '½', '¾'][Math.floor((f - wh) * 4)]; const t = wh === 0 ? (fr || '¼') : wh + (wh < 10 ? fr : '');
+  g.font = `italic 500 13px ${FONT}`; const w = g.measureText(t).width; if (!free(x - w / 2 - 2, y - 11, w + 4, 14)) return false;
+  g.textAlign = 'center'; g.fillText(t, x, y); occupy(x - w / 2 - 2, y - 11, w + 4, 14); return true;
+}
+function soundings(levels) {
+  for (let y = 585; y < 1075; y += 66) for (let x = 40; x < 1900; x += 118) {
+    const X = x + (rn() - 0.5) * 50, Y = y + (rn() - 0.5) * 24, D = DEP(X, Y); if (D < 0.6 || sdist(X, Y) < 10) continue;
+    if (levels.some((l) => Math.abs(D - l) < 0.45 + l * 0.05)) continue; if (rn() > 0.5) continue; if (!free(X - 34, Y - 30, 68, 44)) continue; sounding(X, Y, D);
+  }
+}
+function engraved() {
+  OCC = [];
+  let d = 0, gap = 2.8; for (let k = 0; k < 18; k++) { d += gap; gap *= 1.2; g.strokeStyle = GA(clamp(0.95 - k * 0.03, 0.4, 0.95)); g.lineWidth = Math.max(0.5, 1.45 - k * 0.055); strokePts(offPts(d, 0.7, k)); }   // water-lining
+  for (const [fm, sp] of [[3, 5], [5, 4], [10, 6]]) { const P = contourPts(fm * 1.8288); g.fillStyle = INK(0.55); g.beginPath(); let acc = 0, prev = null; for (const p of P) { if (!p) { prev = null; continue; } if (prev) { acc += Math.hypot(p[0] - prev[0], p[1] - prev[1]); if (acc >= sp) { acc = 0; g.moveTo(p[0] + 0.9, p[1]); g.arc(p[0], p[1], 0.9, 0, 6.2832); } } prev = p; } g.fill(); }   // fathom lines
+  coastline(INK(0.9), 2.2, 0.4); shoreDetail(INK(0.7)); soundings([3 * 1.8288, 5 * 1.8288, 10 * 1.8288]);
+}
+// The valley: draw offscreen, then keep it only inside the soft silhouette of the density field.
+function valleyMask() { const M = document.createElement('canvas'); M.width = 1920; M.height = 1080; const m = M.getContext('2d'), id = m.createImageData(1920, 1080);
+  for (let y = 0; y < 1080; y++) for (let x = 0; x < 1920; x++) { const a = clamp(F(x, y) / 0.62, 0, 1); id.data[(y * 1920 + x) * 4 + 3] = Math.round(255 * Math.pow(a, 1.5)); } m.putImageData(id, 0, 0); return M; }
+function masked(fn) { const main = g, o = document.createElement('canvas'); o.width = 3840; o.height = 2160; g = o.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); fn();
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(valleyMask(), 0, 0, 3840, 2160); g = main; g.drawImage(o, 0, 0, 1920, 1080); }
+
+(async () => {
+  try {
+    if (window.CHART_FONT) { const ff = new FontFace(BRAND.font, `url(${window.CHART_FONT})`, { weight: '100 900' }); await ff.load(); document.fonts.add(ff); }
+    else { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(BRAND.font)}:wght@500&display=block`; document.head.append(l); await new Promise((r) => { l.onload = r; l.onerror = r; setTimeout(r, 4000); }); }
+    await document.fonts.load(`italic 500 13px ${FONT}`);
+  } catch { /* the soundings fall back to the system sans */ }
+  masked(engraved); document.title = 'done';
+})();
+</script></body></html>

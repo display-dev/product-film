@@ -1,0 +1,236 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<!-- Route C walkthrough engine (product-film skill). One page draws every scene of both cuts.
+     URL: ?beat=<scene>&mode=overlay|cards&toff=<scene s>&tend=<scene s>&dur=<clip s>&xf=<s>&g0=<film s>&i=<card>&slow=<factor>
+     window.seek(t) draws clip time t deterministically. Rules and numbers: references/walkthrough.md.
+     Replace the example scenes (s0 title, s1 one take, card, s2 end card); keep the engine.
+     The example product is Tidewell, a fictional shared-docs app. -->
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== Brand. Replace with your product's tokens (DESIGN.md, tokens.css, a Tailwind config or the app's CSS custom
+   properties). Every brand colour and font on this page comes from this block; the Google Fonts link above must
+   load the same families. Example values: Tidewell. ===== */
+:root{
+  --accent: #0E8A7E;
+  --accent-soft: color-mix(in oklab, var(--accent) 22%, transparent);   /* selection highlight */
+  --on-accent: #FFFFFF;
+  --ink: #121212;
+  --plate: #F3F3F3;
+  --muted: #6B6B6B;
+  --muted-weak: #A3A3A3;
+  --border: #E5E5E5;
+  --surface: #F5F5F5;
+  --surface-2: #EDEDED;
+  --font: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+}
+/* ===== end of brand block ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--plate)}
+#stage{position:absolute;inset:0;font-family:var(--font);overflow:hidden;color:var(--ink)}
+/* static background: the same image in every clip keeps dissolves seamless. `node tools/make-chart-bg.mjs` renders the
+   engraved chart in this page's brand block colours to backgrounds/; without it the plate stays plain. */
+#bgimg{position:absolute;inset:0;width:1920px;height:1080px}
+#world{position:absolute;inset:0;overflow:hidden}
+#cam{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}   /* 2D camera: text re-rasters sharp at any zoom */
+#scene{position:absolute;inset:0}
+/* caption band: zoomed content passes under the caption, never through it */
+#band{position:absolute;left:0;right:0;top:0;height:194px;background:linear-gradient(var(--plate) 0,var(--plate) 174px,transparent 194px)}
+.o{position:absolute;opacity:0}
+
+/* captions (cut A) and full-screen cards (cut B) */
+#ov{position:absolute;inset:0;z-index:50}
+.cap{position:absolute;left:0;right:0;top:74px;text-align:center;font-weight:800;font-size:76px;letter-spacing:-.045em;line-height:1.06;opacity:0}
+.sub{position:absolute;left:0;right:0;top:170px;text-align:center;font-size:28px;font-weight:500;color:var(--muted);opacity:0}
+.acc{color:var(--accent)}
+#ct{left:0;right:0;top:0;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:110px}
+.ctx{font-weight:800;font-size:116px;letter-spacing:-.05em;line-height:1.04;text-align:center}
+.csub{font-size:34px;font-weight:500;color:var(--muted);margin-top:26px;text-align:center}
+
+/* title and end card */
+.ename{font-size:170px;font-weight:800;letter-spacing:-.055em;line-height:1}
+.by{display:flex;align-items:baseline;gap:18px;font-size:44px;font-weight:500;color:var(--muted)}
+.epill{display:inline-flex;align-items:center;gap:16px;height:84px;padding:0 40px;border-radius:99px;background:var(--accent);color:var(--on-accent);font-size:32px;font-weight:600}
+.etag{font-size:26px;font-weight:500;color:var(--muted)}
+
+/* surfaces: flat white, a soft shadow, no glass, no glow */
+.glass{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 24px 60px rgba(0,0,0,.07),0 2px 6px rgba(0,0,0,.04)}
+.solid{background:#fff;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.05)}
+.btn{height:40px;padding:0 18px;border-radius:12px;border:1px solid transparent;font-size:15.5px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--on-accent)}.btn.ghost{color:var(--ink)}
+
+/* browser frame (neutral) */
+.br{left:210px;top:228px;width:1500px;height:810px;border-radius:16px;overflow:hidden}
+.br .tabs{height:46px;background:#EDEDED;display:flex;align-items:flex-end;padding:0 18px;gap:10px}
+.br .dots{display:flex;gap:8px;align-self:center;margin-right:14px}.br .dots i{width:13px;height:13px;border-radius:50%;display:block}
+.br .dots i:nth-child(1){background:#ff5f57}.br .dots i:nth-child(2){background:#febc2e}.br .dots i:nth-child(3){background:#28c840}
+.br .tab{height:38px;width:320px;background:#fff;border-radius:11px 11px 0 0;display:flex;align-items:center;padding:0 16px;font-size:15px;font-weight:500;white-space:nowrap}
+.br .tool{height:52px;background:#fff;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border)}
+.br .omni{flex:1;height:36px;border-radius:99px;background:var(--surface);display:flex;align-items:center;padding:0 18px;font-size:16.5px}
+.br .page{position:absolute;left:0;right:0;top:98px;bottom:0;background:#fff;padding:56px 64px}
+
+/* the example page under review */
+.pg .eb{font:600 14px var(--font-mono);letter-spacing:.12em;color:var(--muted)}
+.pg h1{font-size:66px;font-weight:700;letter-spacing:-.045em;line-height:1.08;margin-top:14px;white-space:nowrap;min-height:1.08em}   /* min-height: an edited, emptied line never collapses */
+.pg .lede{font-size:23px;color:var(--muted);margin-top:16px}
+.pg .blk{margin-top:44px;width:760px;height:330px;border-radius:14px;background:var(--surface)}
+/* selection highlight: its width is driven by the pointer tip, never by its own easing */
+.hl{background-image:linear-gradient(var(--accent-soft),var(--accent-soft));background-repeat:no-repeat;background-size:calc(var(--w,0)*100%) 100%;border-radius:4px}
+
+/* side panel, comment pill, comment popover */
+.xp{left:1236px;top:700px;width:440px;border-radius:12px;overflow:hidden}
+.xp .hd{height:56px;display:flex;align-items:center;padding:0 18px;font-size:16.5px;font-weight:700;border-bottom:1px solid var(--border)}
+.xp .bd{height:120px;padding:18px;font-size:15px;color:var(--muted)}
+.xp .url{font:500 14px var(--font-mono);color:var(--accent);background:var(--surface);border-radius:8px;padding:9px 10px;margin-top:12px;opacity:0}
+.xp .ft{height:66px;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;border-top:1px solid var(--border)}
+.xp .ft .btn{min-width:180px}   /* sized for the longest label: a label change must not move the button */
+.cpill{font-size:15px;font-weight:500;padding:6px 13px;border-radius:8px}
+.cpop{width:470px;border-radius:10px;padding:16px}
+/* focused field: take the border and focus ring from the product's shipped CSS. Example: a 1px accent border and a
+   3px ring at 18 %. At 2x zoom a 2px focus border next to 1px fields reads as a heavy double outline. */
+.cpop .ta{height:104px;border:1px solid var(--accent);border-radius:10px;padding:13px 15px;font-size:18px;line-height:1.45;box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent)}
+.cpop .row{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+/* caret: always in the DOM, blinks by opacity. Never re-insert it into the text – that re-flows the line and flickers. */
+.caret{display:inline-block;width:2px;height:1.1em;background:var(--ink);vertical-align:-.15em;margin-left:1px}
+.phd{color:var(--muted-weak)}
+.mc{left:0;top:0;width:30px;height:30px;z-index:40}
+.mc svg{width:30px;height:30px;filter:drop-shadow(0 3px 5px rgba(0,0,0,.25))}
+</style></head><body>
+<div id="stage">
+  <img id="bgimg" src="backgrounds/engraved-chart-3840x2160.png" alt="" onerror="this.remove()">
+  <div id="world"><div id="cam"><div id="scene"></div></div></div>
+  <div id="band"></div>
+  <div id="ov"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,u)=>a+(b-a)*u,seg=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+const eo=u=>1-Math.pow(1-u,3),ei=u=>u*u*u,eio=u=>u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+const bo=u=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(u-1,3)+c1*Math.pow(u-1,2);};
+
+// ---------- clip parameters (render.js passes them from the plan) ----------
+const Q=new URLSearchParams(location.search);
+const SC=Q.get('beat')||'s0';                        // scene
+const CARDS=(Q.get('mode')||'overlay')==='cards';    // cut B: the words live on full-screen cards; product shots carry no captions
+const TOFF=+(Q.get('toff')||0);                      // the clip starts at this scene time
+const T=+(Q.get('dur')||3);                          // clip length in real seconds, dissolve overlap included
+const XFp=+(Q.get('xf')||.5);                        // dissolve length
+const GB=+(Q.get('g0')||0);                          // film time at the clip's first frame: drive anything that must run continuously across dissolves from GB + t
+const CI=+(Q.get('i')||0);                           // card index
+const TEND=Q.has('tend')?+Q.get('tend'):1e9;         // with a plan 'tail', the clip holds on this scene frame
+const SLOW=+(Q.get('slow')||1.2);                    // scene time plays this much slower than it is written
+
+// ---------- holds: [scene time, real seconds] ----------
+// A hold freezes the scene so the viewer can read. Put one only where the pointer rests on the item that
+// matters; a hold even 0.05 s into a move reads as a stuck cursor. audit.js checks this.
+const HOLDS={s0:[[.95,.6]],s1:[[3.35,.8],[6.1,1.0]],s2:[]};
+function unwarp(ts){const H=HOLDS[SC]||[];let tr=0,prev=0;for(const [hs,hd] of H){if(ts<=hs)return tr+(ts-prev)*SLOW;tr+=(hs-prev)*SLOW+hd;prev=hs;}return tr+(ts-prev)*SLOW;}   // scene → real
+function warp(tr){const H=HOLDS[SC]||[];let ts=0,r=tr;for(const [hs,hd] of H){const need=(hs-ts)*SLOW;if(r<=need)return ts+r/SLOW;r-=need;if(r<=hd)return hs;r-=hd;ts=hs;}return ts+r/SLOW;}   // real → scene
+window.clipDur=(a,b)=>unwarp(b)-unwarp(a);
+const R0=unwarp(TOFF);                       // real seconds into the scene at the clip's first frame
+const endSc=warp(R0+T-XFp);                  // scene time when the outgoing dissolve starts
+window.FILM={SC,HOLDS,SLOW,R0,TOFF,warp,unwarp};
+
+// ---------- camera: 2D only. One base framing; eased zooms onto the item that matters; back to base. No drift. ----------
+const BASE=CARDS?{cx:960,cy:648,m:1.1}:{cx:960,cy:566,m:1.1};
+const BR={l:218,t:228,r:1702,b:1030};        // browser rect: a clamped zoom keeps the browser filling the frame
+function clampK(k){if(!k.clamp)return k;const m=k.m;let lo=BR.l+960/m,hi=BR.r-960/m;const cx=lo>hi?(lo+hi)/2:clamp(k.cx,lo,hi);
+  lo=BR.t+(CARDS?560:372)/m;hi=BR.b-520/m;const cy=lo>hi?(lo+hi)/2:clamp(k.cy,lo,hi);return{...k,cx,cy};}
+function cam(t,K){K=K.map(clampK);let a=K[K.length-1],b=a;if(t<a.t){a=b=K[0];for(let i=0;i<K.length-1;i++){if(t>=K[i].t&&t<=K[i+1].t){a=K[i];b=K[i+1];break;}}}
+  const u=b.t>a.t?eio(seg(t,a.t,b.t)):1;const m=Math.exp(lerp(Math.log(a.m),Math.log(b.m),u));
+  $('cam').style.transform=`translate(960px,560px) scale(${m}) translate(${-lerp(a.cx,b.cx,u)}px,${-lerp(a.cy,b.cy,u)}px)`;}
+const B0=t=>({t,...BASE,clamp:true}),Z=(t,cx,cy,m)=>({t,cx,cy,m,clamp:true}),F0=(t,cx,cy,m)=>({t,cx,cy,m});
+
+// ---------- objects: flat 2D placement, no tilt, no float ----------
+function put(el,o){if(!el)return;el.style.transform=`translate(${o.x??0}px,${o.y??0}px) scale(${o.s??1})`;el.style.opacity=o.op??1;el.style.filter=o.f||'';}
+function enter(el,t,t0,dur,o={}){const u=eo(seg(t,t0,t0+dur));put(el,{x:o.x??0,y:(o.y??0)+lerp(o.rise??14,0,u),s:lerp(o.from??.98,1,u)*(o.s??1),op:u*(o.op??1)});return u;}
+function pop(el,t,t0,o={}){const u=seg(t,t0,t0+.34);put(el,{x:o.x??0,y:o.y??0,s:u?lerp(.7,1,bo(u))*(o.s??1):.7,op:eo(seg(t,t0,t0+.14))});return u;}
+function ground(el,k){if(el&&k>.001)el.style.filter=`blur(${(0.9*k).toFixed(2)}px) brightness(${(1-.05*k).toFixed(3)})`;}   // subject forward, page back
+function pos(e){let x=0,y=0,n=e;while(n&&n.id!=='stage'){x+=n.offsetLeft;y+=n.offsetTop;n=n.offsetParent;}return{x,y,w:e.offsetWidth,h:e.offsetHeight};}
+function at(el,x,y){el.style.left=x+'px';el.style.top=y+'px';}
+// Set the text first, then centre. Centring on the old width shows the element off-centre for one frame.
+function centreText(el,text,cx){if(el.textContent!==text)el.textContent=text;el.style.left=(cx-el.offsetWidth/2)+'px';}
+const press=(t,p)=>seg(t,p,p+.08)*(1-seg(t,p+.08,p+.24));
+// Caret: on from a (focus), solid while typing until e, then blinks with its phase taken from e, so every cut of the
+// scene sees the same blink. An on-phase shorter than 0.1 s before 'off' is dropped, so it never flashes for one frame.
+function caret(t,a,e,off){if(t<a||t>=off)return 0;if(t<=e)return 1;const ph=((t-e)*2.2)%1;if(ph>=.55)return 0;return off-(t-ph/2.2)<.1?0:1;}
+function hl(id,w){const e=$(id);if(e)e.style.setProperty('--w',w);}
+function typeInto(id,str,t,a,b){const n=Math.floor(str.length*seg(t,a,b));$(id).textContent=str.slice(0,n);return n;}
+// Pointer: eased segments; travel arcs slightly, drags ({drag:true}) are straight. Returns the tip, which drives
+// any selection highlight so the highlight and the pointer move as one.
+function cursor(el,t,K,presses=[],show=[0,99]){if(!el)return{x:0,y:0};let a=K[0],b=K[0],idx=0;if(t>=K[K.length-1].t){a=b=K[K.length-1];}else{for(let i=0;i<K.length-1;i++){if(t>=K[i].t&&t<=K[i+1].t){a=K[i];b=K[i+1];idx=i;break;}}}
+  const u=b.t>a.t?eio(seg(t,a.t,b.t)):1;const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;const arc=b.drag?0:Math.sin(Math.PI*u)*Math.min(60,L*.12)*(idx%2?1:-1);
+  let pr=0;for(const p of presses)pr=Math.max(pr,press(t,p));
+  const op=seg(t,show[0],show[0]+.2)*(1-seg(t,show[1],show[1]+.2));
+  const X=lerp(a.x,b.x,u)-dy/L*arc,Y=lerp(a.y,b.y,u)+dx/L*arc;put(el,{x:X,y:Y,s:1-.16*pr,op});return{x:X+5,y:Y+3};}
+
+// ---------- scene DOM (example content: Maya Chen reviews an agent's draft in Tidewell and shares it) ----------
+const ARROW='<svg viewBox="0 0 24 24"><path d="M4 2.5v17.2l4.6-4.3 2.9 6.6 3-1.3-2.9-6.5h6.3z" fill="#111" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+const COMMENT='Too generic. Lead with the outcome.';
+const S=$('scene');
+if(SC==='s0')S.innerHTML=`<div class="o" id="t0a" style="left:0;right:0;top:372px;text-align:center"><span class="ename" style="font-size:150px">Meet <span class="acc">Tidewell</span></span></div>
+  <div class="o" id="t0b" style="left:0;right:0;top:560px;display:flex;justify-content:center"><div class="by">Shared docs for client work</div></div>`;
+if(SC==='s1')S.innerHTML=`<div class="o br glass" id="br">
+    <div class="tabs"><div class="dots"><i></i><i></i><i></i></div><div class="tab">Spring catalogue brief – Tidewell</div></div>
+    <div class="tool"><div class="omni">app.tidewell.example/northfield/spring-brief</div></div>
+    <div class="page pg"><div class="eb">NORTHFIELD STUDIO · BRIEF</div><h1><span class="hl" id="hl1">A catalogue for every season.</span></h1>
+      <div class="lede">Twenty-four pieces, three looks, one launch date.</div><div class="blk"></div></div></div>
+  <div class="o xp glass" id="xp"><div class="hd">Review</div><div class="bd"><div id="xp-sum">Select text to comment.</div><div class="url" id="xurl">tidewell.example/p/k3v9Q2mx</div></div>
+    <div class="ft"><span class="btn pri" id="pb">Share with client</span></div></div>
+  <div class="o cpill solid" id="cp">Comment</div>
+  <div class="o cpop solid" id="pop"><div class="ta"><span id="ty"></span><span class="caret" id="car"></span><span class="phd" id="ph">Write a comment…</span></div>
+    <div class="row"><span class="btn ghost">Cancel</span><span class="btn pri" id="add">Add comment</span></div></div>
+  <div class="o mc" id="mc">${ARROW}</div>`;
+if(SC==='s2')S.innerHTML=`<div class="o" id="e0" style="left:0;right:0;top:236px;text-align:center"><div class="ename">Tidewell</div></div>
+  <div class="o" id="e0b" style="left:0;right:0;top:436px;display:flex;justify-content:center"><div class="by">Write, comment and share with clients.</div></div>
+  <div class="o" id="e1" style="left:0;right:0;top:612px;display:flex;justify-content:center"><div class="epill">Try Tidewell <span>→</span></div></div>
+  <div class="o" id="e2" style="left:0;right:0;top:728px;text-align:center"><div class="etag">app.tidewell.example</div></div>`;
+const CARDTXT=[['Select text and <span class="acc">comment</span>.','A subline, when the card needs one.'],['Share it on a <span class="acc">link</span>.']];
+if(SC==='card'){const [h,sb]=CARDTXT[CI];S.innerHTML=`<div class="o" id="ct"><div class="ctx">${h}</div>${sb?`<div class="csub">${sb}</div>`:''}</div>`;}
+if(CARDS)$('band').style.display='none';
+
+// ---------- captions: one per chapter, cross-faded inside a continuous take ----------
+// Text never dissolves into text: the first caption starts after the incoming dissolve's midpoint,
+// and the last one is gone before the outgoing dissolve is half done.
+const CAPS={s1:[[0,'Select text and <span class="acc">comment</span>.'],[4.5,'Share it on a <span class="acc">link</span>.']]};
+const CAPEL=[];(CARDS?[]:(CAPS[SC]||[])).forEach(([t0,h,sb])=>{const c=document.createElement('div');c.className='cap';c.innerHTML=h;$('ov').appendChild(c);
+  let s=null;if(sb){s=document.createElement('div');s.className='sub';s.textContent=sb;$('ov').appendChild(s);}CAPEL.push({t0,c,s});});
+function captions(t){CAPEL.forEach((k,i)=>{const last=i===CAPEL.length-1;const nx=last?endSc+.1:CAPEL[i+1].t0;const i0=i?k.t0+.02:k.t0+.3;const u=eo(seg(t,i0,i0+(i?.38:.45)));const v=ei(seg(t,nx-(last?.24:.22),nx));
+  k.c.style.opacity=u*(1-v);k.c.style.transform=`translateY(${lerp(18,0,u)-10*v}px)`;
+  if(k.s){const w=eo(seg(t,k.t0+.5,k.t0+.9));k.s.style.opacity=w*(1-v);k.s.style.transform=`translateY(${lerp(12,0,w)}px)`;}});}
+
+// ---------- S1: one continuous take. Every change is caused by a visible click. ----------
+function s1(t){
+  const br=$('br'),xp=$('xp'),h=pos($('hl1'));
+  at($('cp'),h.x+h.w-60,h.y+h.h+4);at($('pop'),h.x+40,h.y+h.h+18);
+  const CP=pos($('cp')),P=pos($('pop')),AD=pos($('add')),PB=pos($('pb')),XP=pos(xp);
+  // camera: base → the comment being typed → base → the shared link → hold
+  const popC=[P.x+P.w/2,(h.y+P.y+P.h)/2],xpC=[XP.x+XP.w/2,XP.y+XP.h/2];
+  cam(t,[B0(0),B0(1.95),Z(2.55,...popC,1.5),Z(3.95,...popC,1.5),B0(4.5),B0(5.25),Z(5.85,...xpC,1.6)]);
+  put(br,{});ground(br,seg(t,2.0,2.4)*(1-seg(t,3.95,4.3)));
+  // the panel is open from the start; it counts the comment, then shows the link
+  const xin=eo(seg(t,.1,.5));put(xp,{y:lerp(14,0,xin),s:lerp(.98,1,xin),op:xin});
+  $('xp-sum').textContent=t>=4.0?'1 comment added':'Select text to comment.';
+  // select → Comment pill → popover → type → Add comment
+  put($('cp'),{s:t>=1.5?lerp(.7,1,bo(seg(t,1.5,1.8))):.7,op:eo(seg(t,1.5,1.65))*(1-seg(t,1.95,2.1))});
+  const pu=eo(seg(t,1.95,2.4)),pout=seg(t,3.95,4.2);
+  put($('pop'),{y:lerp(12,0,pu)+8*pout,s:lerp(.98,1,pu)-.02*pout,op:pu*(1-pout)});
+  const n=typeInto('ty',COMMENT,t,2.5,3.3);$('ph').style.display=n?'none':'inline';$('car').style.opacity=caret(t,2.4,3.3,3.5);
+  $('add').style.transform=`scale(${1-.08*press(t,3.9)})`;
+  // Share with client → the link appears in the panel
+  $('pb').style.transform=`scale(${1-.08*press(t,5.2)})`;$('pb').textContent=t>=5.55?'Shared':t>=5.3?'Sharing…':'Share with client';
+  const lu=eo(seg(t,5.6,5.95));$('xurl').style.opacity=lu;$('xurl').style.transform=`translateY(${lerp(8,0,lu)}px)`;
+  // pointer: arrive, then click while still; start the next move early; drags are straight
+  const tip=cursor($('mc'),t,[{t:.1,x:1400,y:860},{t:.8,x:h.x-6,y:h.y+34},{t:.85,x:h.x-4,y:h.y+36},{t:1.4,x:h.x+h.w-4,y:h.y+36,drag:true},
+    {t:1.45,x:h.x+h.w-4,y:h.y+36},{t:1.8,x:CP.x+40,y:CP.y+18},{t:3.4,x:CP.x+40,y:CP.y+18},{t:3.8,x:AD.x+60,y:AD.y+22},
+    {t:4.5,x:AD.x+60,y:AD.y+22},{t:5.1,x:PB.x+60,y:PB.y+22}],[.85,1.85,3.9,5.2],[.1,99]);
+  hl('hl1',t<.85?0:t>1.4?1:clamp((tip.x-h.x)/h.w,0,1));}
+
+// ---------- seek ----------
+window.seek=function(t0){const t=Math.min(warp(R0+t0),TEND);captions(t);
+  if(SC==='s0'){cam(t,[F0(0,960,560,1)]);const out=1-seg(t,endSc-.2,endSc+.05);enter($('t0a'),t,.15,.55,{rise:16,op:out});enter($('t0b'),t,.4,.5,{rise:10,op:out});}
+  if(SC==='card'){cam(t,[F0(0,960,560,1)]);const u=eo(seg(t0,0,.32)),v=ei(seg(t0,T-.3,T));const c=$('ct');c.style.opacity=u*(1-v);c.style.transform=`translateY(${lerp(12,0,u)}px)`;}
+  if(SC==='s1')s1(t);
+  if(SC==='s2'){cam(t,[F0(0,960,560,1)]);enter($('e0'),t,.35,.55,{rise:16});enter($('e0b'),t,.55,.5,{rise:10});pop($('e1'),t,.85);enter($('e2'),t,1.05,.5,{rise:8});}
+};
+window.seek(0);
+</script></body></html>

@@ -1,0 +1,4 @@
+{"name":"A","mode":"overlay","xf":0.5,"slow":1.2,"clips":[
+ {"id":"s0","beat":"s0","tend":2.4},
+ {"id":"s1","beat":"s1","tend":6.9},
+ {"id":"s2","beat":"s2","tend":4.5}]}

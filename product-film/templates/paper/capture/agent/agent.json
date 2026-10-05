@@ -1,0 +1,22 @@
+{
+  "_doc": "EXAMPLE conversation for the agent window. Each item is visible from state `s` (and until state `until`, if set). capture.mjs renders states 0..maxState at the wide and narrow sizes. The window is a neutral 'Agent' chat with no tool name or logo; `product` is your product's name as it appears in tool cards. Slide the window in at a state that already shows the prompt.",
+  "title": "Agent",
+  "chat": "Spring launch plan",
+  "product": "Tidewell",
+  "actions": ["Open in Tidewell", "Copy link"],
+  "preview": "../shots/page-draft.png",
+  "scrollFrom": 6,
+  "items": [
+    { "s": 1, "type": "msg", "text": "Publish the spring launch plan and share it with Jordan." },
+    { "s": 2, "until": 3, "type": "typing" },
+    { "s": 3, "until": 4, "type": "card", "busy": true, "command": "publish – spring-launch-plan.html" },
+    { "s": 4, "type": "card", "command": "publish – spring-launch-plan.html", "status": "✓ published v1", "preview": true, "id": "card1" },
+    { "s": 5, "type": "result", "text": "Published v1 and shared it with Jordan:", "url": "tidewell.example/p/r8Kd2m", "id": "res1" },
+    { "s": 7, "type": "msg", "text": "Jordan asked to start in May. Move the kickoff." },
+    { "s": 8, "until": 9, "type": "typing" },
+    { "s": 9, "type": "say", "text": "Moving the kickoff from April 14 to May 6." },
+    { "s": 10, "until": 11, "type": "card", "busy": true, "command": "publish – spring-launch-plan.html" },
+    { "s": 11, "type": "card", "command": "publish – spring-launch-plan.html", "status": "✓ published v2", "id": "card2" },
+    { "s": 12, "type": "result", "text": "Published v2 at the same link.", "id": "res2" }
+  ]
+}

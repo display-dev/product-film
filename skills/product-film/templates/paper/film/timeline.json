@@ -1,0 +1,72 @@
+{
+  "_doc": "The one timeline (EXAMPLE content: a Tidewell story). film.js reads scene windows and named cues from here (cue times are seconds from the scene start); captions render from here; the .srt, the SFX mix, the copy check, the review tools and the README all read it. Retime a scene and its cues, SFX and captions move together. voice and music are empty tracks for a later pass: add {start, file, gain} items and mix.py mixes them; read music hit points off the cues.",
+  "name": "example-film",
+  "title": "Tidewell example film",
+  "summary": "A silent-first product film: a cut-paper cast carries the story over real product UI.",
+  "brand": {
+    "_doc": "BRAND: one block for the whole film (kit, engine, captions, end card, chart background, review page). Replace these with your product's tokens (DESIGN.md, tokens.css, a Tailwind config or CSS custom properties, if the project has them; else ask). Rebuild the kit and the background after a change.",
+    "accent": "#0E8A7E", "accentText": "#FFFFFF", "ink": "#121212", "plate": "#F3F3F3", "wordmark": "Tidewell", "font": "Geist"
+  },
+  "fps": 30,
+  "duration": 22.8,
+  "formats": ["16x9", "9x16", "4x5"],
+  "outputs": [["16x9", 1], ["9x16", 1], ["16x9", 0]],
+  "safeZones": {"9x16": {"top": 250, "bottom": 480, "right": 150, "left": 0}},
+  "manifests": ["manifest-page.json", "manifest-agent.json", "manifest-agent-narrow.json", "manifest-app.json"],
+  "copy": {
+    "_doc": "Copy rules for tools/check-copy.py. voiceFile: a style guide to read banned terms from at run time (for example \"../VOICE.md\", relative to the film folder); when it is null, bannedTerms applies. extraBanned: regexes for this film. allow: names to mask before checking (a product name that contains a banned word). spelling: us | uk | off. emDash: ban | allow.",
+    "voiceFile": null,
+    "bannedTerms": ["seamless", "seamlessly", "effortless", "effortlessly", "revolutionary", "game-changer", "game-changing", "supercharge", "unlock", "unleash", "leverage", "cutting-edge", "next-gen", "best-in-class", "world-class", "magic", "magically"],
+    "extraBanned": [],
+    "allow": [],
+    "spelling": "us",
+    "emDash": "ban",
+    "maxWords": 7, "minHold": 1.5, "perWord": 0.3, "margin": 0.5, "minSceneGap": 1.0, "captionGap": 0.14
+  },
+  "scenes": [
+    {"id": "s1", "start": 0.0, "end": 3.6, "beat": "Hook and problem. Maya presents the plan, a raw draft in a clean browser window, then wonders: a question mark writes on. Frame 0 is the thumbnail.", "cues": {"blink": 1.2, "think": 1.7, "question": 2.1}},
+    {"id": "s2", "start": 3.6, "end": 8.4, "beat": "The turn. The draft leaves as the agent window slides in with the prompt already there; published v1 and shared; zoom on the URL, accent circle, \"one link\". Maya walks over and points.", "cues": {"in": 0.0, "typing": 0.5, "pub": 1.0, "done": 1.6, "result": 2.0, "zoom": 2.3, "circle": 2.9, "one": 3.3, "zoomOut": 4.1}},
+    {"id": "s3", "start": 8.4, "end": 13.8, "beat": "The client. Jordan holds a phone: invited sign-in, the one-time code steps to all six digits (zoom, \"no account needed\"), verified, opening, the page. Jordan asks in a speech bubble: \"Can we start in May?\"", "cues": {"in": 0.0, "tap": 0.5, "otp": 0.8, "zoom": 0.9, "noacct": 1.2, "d5": 1.5, "d6": 2.0, "zoomOut": 2.6, "verified": 2.7, "opening": 3.1, "open": 3.3, "ask": 3.9}},
+    {"id": "s4", "start": 13.8, "end": 18.8, "beat": "Payoff. The open tab offers v2; click Refresh; the page is replaced by v2 (lift and land); zoom on the new kickoff date (the word May the viewer just read), accent circle; back out, then \"same link\" on the URL bar (a label written during a zoom lands off screen).", "cues": {"in": 0.0, "click": 1.1, "swap": 1.4, "zoom": 1.8, "circle": 2.3, "zoomOut": 3.4, "same": 3.9}},
+    {"id": "s5", "start": 18.8, "end": 22.8, "beat": "End card, flat: the Tidewell text wordmark, \"Pages your clients can open.\", a plain accent pill \"Try Tidewell\", tidewell.example.", "cues": {"in": 0.3}}
+  ],
+  "captions": [
+    {"id": "C1", "start": 0.0, "end": 3.5, "text": "The plan sits in drafts.", "accent": "drafts"},
+    {"id": "C2", "start": 3.9, "end": 7.9, "text": "Her agent publishes and shares it.", "accent": "shares"},
+    {"id": "C3", "start": 8.6, "end": 13.6, "text": "Jordan opens it with a one-time code.", "accent": "one-time"},
+    {"id": "C4", "start": 14.2, "end": 18.4, "text": "Next version, same link.", "accent": "link"}
+  ],
+  "labels": {
+    "s2.one": "one link",
+    "s3.noacct": "no account needed",
+    "s3.tag": "Jordan · client",
+    "s3.ask": "Can we start in May?",
+    "s4.same": "same link",
+    "s5.line": "Pages your clients can open.",
+    "s5.cta": "Try Tidewell",
+    "s5.url": "tidewell.example"
+  },
+  "sfx": [
+    {"cue": "C1", "sfx": "tape1", "gain": -17, "note": "caption strip lands"},
+    {"cue": "C2", "sfx": "tape2", "gain": -17},
+    {"cue": "C3", "sfx": "tape3", "gain": -17},
+    {"cue": "C4", "sfx": "tape1", "gain": -17},
+    {"cue": "s1.question", "sfx": "marker3", "gain": -18},
+    {"cue": "s2.in", "sfx": "slide1", "gain": -10},
+    {"cue": "s2.circle", "sfx": "marker-long", "gain": -13},
+    {"cue": "s2.one", "sfx": "marker2", "gain": -17},
+    {"cue": "s3.in", "sfx": "slide2", "gain": -10},
+    {"cue": "s3.tap", "sfx": "click1", "gain": -15},
+    {"cue": "s3.d5", "sfx": "key2", "gain": -19},
+    {"cue": "s3.d6", "sfx": "key3", "gain": -19},
+    {"cue": "s3.noacct", "sfx": "marker3", "gain": -18},
+    {"cue": "s3.ask", "sfx": "place2", "gain": -12},
+    {"cue": "s4.in", "sfx": "slide3", "gain": -10},
+    {"cue": "s4.click", "sfx": "click2", "gain": -15},
+    {"cue": "s4.swap", "sfx": "place1", "gain": -11},
+    {"cue": "s4.circle", "sfx": "marker1", "gain": -13},
+    {"cue": "s4.same", "sfx": "marker2", "gain": -17}
+  ],
+  "voice": [],
+  "music": []
+}

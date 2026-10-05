@@ -1,0 +1,59 @@
+<!doctype html>
+<!-- EXAMPLE fixture artifact: a page written for the film (Northfield Studio's spring launch plan for its client), the
+     content a person publishes with the example product. capture/artifact/build.py fills the double-underscore
+     placeholders from story.json artifact.versions[].fill and inlines the FONT placeholders from capture/fonts/, so
+     every version is one self-contained file. Keep the layout identical across versions: run check-layout.mjs.
+     No vh units: the page also renders inside the app's iframe, whose height is not the window's. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spring launch plan</title>
+<style>
+@font-face{font-family:"Anton";src:url(data:font/woff2;base64,__FONT:anton-latin.woff2__) format("woff2");font-weight:400;font-display:block}
+@font-face{font-family:"Manrope";src:url(data:font/woff2;base64,__FONT:manrope-latin.woff2__) format("woff2");font-weight:200 800;font-display:block}
+/* ── The artifact's own look (the customer's page, not the product's brand). Change the page here. ── */
+:root{--bg:#F5F2EA;--ink:#17150F;--muted:#6B665D;--line:#DAD4C8;--card:#FFFDF8;--mark:#E7DCC4}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Manrope",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.nav{height:64px;display:flex;align-items:center;gap:20px;padding:0 48px;border-bottom:1px solid var(--line)}
+.logo{font-weight:800;font-size:19px;letter-spacing:-.01em}
+.for{margin-left:auto;font-size:13px;font-weight:700;color:var(--muted)}
+.main{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:start;padding:52px 64px 60px}
+.kicker{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+h1{font-family:"Anton",Impact,sans-serif;font-weight:400;text-transform:uppercase;font-size:92px;line-height:.92;letter-spacing:.03em}
+.lede{margin-top:18px;font-size:18px;line-height:1.5;font-weight:600;color:var(--muted);max-width:32ch}
+.kickoff{margin-top:30px;display:inline-grid;grid-template-columns:auto 11ch;align-items:baseline;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 20px}
+.kickoff span{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kickoff b{font-family:"Anton",Impact,sans-serif;font-weight:400;font-size:34px;letter-spacing:.02em}
+.plan{list-style:none;padding:0;display:flex;flex-direction:column;gap:14px}
+.plan li{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:start}
+.plan i{font-style:normal;width:48px;height:48px;border-radius:12px;background:var(--mark);display:grid;place-items:center;font-family:"Anton",Impact,sans-serif;font-size:22px}
+.plan h3{font-size:16px;font-weight:800}
+.plan p{margin-top:4px;font-size:14px;font-weight:600;color:var(--muted);line-height:1.45}
+@media (max-width:640px){
+  .nav{height:54px;padding:0 20px}.logo{font-size:17px}.for{font-size:12px}
+  .main{grid-template-columns:1fr;gap:28px;padding:26px 20px 34px}
+  h1{font-size:58px}.lede{font-size:16px;margin-top:12px}
+  .kickoff{margin-top:20px;padding:12px 16px}.kickoff b{font-size:28px}
+  .plan li{grid-template-columns:40px 1fr;padding:14px}.plan i{width:40px;height:40px;font-size:18px}
+}
+</style>
+</head>
+<body>
+<header class="nav"><span class="logo">Northfield Studio</span><span class="for">Prepared for Jordan Ellis</span></header>
+<main class="main">
+  <section>
+    <p class="kicker">Proposal · Spring</p>
+    <h1>Spring launch plan</h1>
+    <p class="lede">Three weeks from first sketch to launch day, with a review at every step.</p>
+    <p class="kickoff"><span>Kickoff</span><b>__KICKOFF__</b></p>
+  </section>
+  <ol class="plan">
+    <li><i>1</i><div><h3>Discovery</h3><p>Interviews, audit and one page of goals.</p></div></li>
+    <li><i>2</i><div><h3>Design</h3><p>Two directions, one round of comments, one pick.</p></div></li>
+    <li><i>3</i><div><h3>Launch</h3><p>Site, email and the first week of posts.</p></div></li>
+  </ol>
+</main>
+</body>
+</html>

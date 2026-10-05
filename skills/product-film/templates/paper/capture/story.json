@@ -1,0 +1,51 @@
+{
+  "_note": "EXAMPLE. The single source of fictional facts for every capture, the fixtures and the film. Fictional only: no customer names, no real people, no real email addresses (use @example.com). The example product is Tidewell, a shared-docs app. Record every name you add in notes/DECISIONS.md.",
+  "product": "Tidewell",
+  "org": { "id": "org-northfield", "name": "Northfield Studio" },
+  "owner": { "id": "u-maya", "name": "Maya Chen", "email": "maya@example.com", "role": "owner" },
+  "teammates": [
+    { "id": "u-sam", "name": "Sam Rivera", "email": "sam@example.com", "role": "member" },
+    { "id": "u-priya", "name": "Priya Nair", "email": "priya@example.com", "role": "member" }
+  ],
+  "client": { "id": "g-jordan", "name": "Jordan Ellis", "email": "jordan@example.com", "role": "guest", "note": "outside the org, no account; signs in with a one-time code; views and asks, never edits" },
+  "agent": { "label": "Agent", "onBehalfOf": "maya@example.com" },
+  "page": { "id": "r8Kd2m", "title": "Spring launch plan", "url": "https://tidewell.example/p/r8Kd2m" },
+  "ask": { "author": "Jordan Ellis", "text": "Can we start in May?" },
+  "otp": "482915",
+  "clock": "2026-03-10T10:02:00Z",
+  "artifact": {
+    "name": "Spring launch plan",
+    "file": "spring-launch-plan.html",
+    "template": "capture/artifact/template.html",
+    "layoutCheck": ["main h1", ".lede", ".kickoff", ".plan"],
+    "swapViewports": ["desktop"],
+    "versions": [
+      { "v": 1, "fill": { "__KICKOFF__": "April 14" }, "by": "agent", "onBehalfOf": "maya@example.com", "change": "first publish", "at": "2026-03-10T09:12:00Z" },
+      { "v": 2, "fill": { "__KICKOFF__": "May 6" }, "by": "agent", "onBehalfOf": "maya@example.com", "change": "kickoff moved to May 6 (answers the client's question, which used the word May)", "at": "2026-03-10T10:00:00Z" }
+    ]
+  },
+  "app": {
+    "_doc": "The app harness (capture/app/capture.mjs). baseUrl null runs the example app in capture/app/example-app/ on a local port. Point it at your product instead: baseUrl = your dev server (http://localhost:3000, or a hostname listed in hostMap), apiPrefixes = where the browser sends API calls (a path on the app origin, or another origin such as http://127.0.0.1:8787/), and answer each call in capture/app/fixtures.mjs.",
+    "baseUrl": null,
+    "hostMap": { "tidewell.example": "127.0.0.1", "app.tidewell.example": "127.0.0.1" },
+    "apiPrefixes": ["/api/"],
+    "allowHosts": [],
+    "blockHosts": ["telemetry.tidewell.example"],
+    "testIdAttribute": "data-testid",
+    "returningUser": { "tidewell:notice-dismissed": "comments-1" },
+    "leaks": [],
+    "hygieneCss": ""
+  },
+  "cli": {
+    "_doc": "The CLI harness (capture/cli/capture.mjs). Each run executes `run` in capture/cli/work/ with baseUrlEnv pointing at the fixture API and keyEnv set to fakeKey, saves the output, and types `typed` on screen. {cli} is capture/cli, {film} the film folder. Replace the example CLI (tidewell.mjs) with your product's real CLI command.",
+    "baseUrlEnv": "TIDEWELL_API_URL",
+    "keyEnv": "TIDEWELL_API_KEY",
+    "fakeKey": "tw_fixture_not_a_real_key",
+    "prompt": "~/northfield",
+    "runs": [
+      { "name": "v1", "files": { "spring-launch-plan.html": "capture/artifact/spring-launch-plan.v1.html" }, "typed": "tidewell publish spring-launch-plan.html", "run": "node \"{cli}/tidewell.mjs\" publish spring-launch-plan.html", "cols": 70, "rows": 6, "typingSteps": 6 },
+      { "name": "v2", "files": { "spring-launch-plan.html": "capture/artifact/spring-launch-plan.v2.html" }, "typed": "tidewell publish spring-launch-plan.html --page r8Kd2m", "run": "node \"{cli}/tidewell.mjs\" publish spring-launch-plan.html --page r8Kd2m", "cols": 70, "rows": 6, "typingSteps": 0 }
+    ]
+  },
+  "viewports": { "desktop": [1280, 800, 3], "phone": [390, 844, 3] }
+}

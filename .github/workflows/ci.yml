@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Mounts byte-identical (canonical → mirrors)
+        run: bin/sync-mounts.sh --check
+
+      - name: Plugin manifests parse as JSON
+        run: |
+          jq empty .cursor-plugin/plugin.json
+          jq empty .codex-plugin/plugin.json
+
+      - name: Shell, Node, Python and JSON syntax
+        run: dev-scripts/check-syntax.sh
+
+      - name: Shellcheck
+        run: shellcheck -S error bin/*.sh dev-scripts/*.sh $(find product-film -name '*.sh')

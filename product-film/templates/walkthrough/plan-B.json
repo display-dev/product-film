@@ -1,0 +1,7 @@
+{"name":"B","mode":"cards","xf":0.45,"slow":1.2,"clips":[
+ {"id":"B00","beat":"s0","tend":2.4},
+ {"id":"B01","beat":"card","i":0,"dur":2.9},
+ {"id":"B02","beat":"s1","toff":0,"tend":4.5,"tail":0.8},
+ {"id":"B03","beat":"card","i":1,"dur":2.6},
+ {"id":"B04","beat":"s1","toff":4.5,"tend":6.9},
+ {"id":"B05","beat":"s2","tend":4.5}]}

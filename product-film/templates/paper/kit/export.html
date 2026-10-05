@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><title>export</title></head><body>
+<script type="module">
+// Freeze the kit: every static paper piece → PNG (3× resolution) + manifest entry with its origin and size in piece units.
+// Cast pieces come from CAST (kit/puppet.js); props are below. A duplicate name is an error, never a silent overwrite.
+import { C, tape, paperPiece, roundPoly, spline } from './kit.js';
+import { castPieces, buildPiece } from './puppet.js';
+const out = {};
+const put = (name, p) => { if (out[name]) throw new Error(`duplicate kit piece ${name}`); out[name] = { png: p.canvas.toDataURL('image/png'), x: p.x, y: p.y, w: p.w, h: p.h, S: p.S }; };
+try {
+  for (const [name, spec] of Object.entries(castPieces())) put(name, buildPiece(spec, 3));
+  // masking tape (3) and accent tape (2), short and long
+  [[1, 150, 40, C.tape], [2, 170, 42, C.tape], [3, 130, 38, C.tape], [4, 160, 40, C.tapeAccent], [5, 120, 36, C.tapeAccent]].forEach(([s, w, h, col]) => put(`tape${s}`, tape(w, h, { seed: s, color: col, S: 3 })));
+  // the pointer: an arrow cut from black paper, tip at (0,0)
+  put('cursor', paperPiece(spline([[0, 0], [0, 50], [12, 39], [21, 60], [30, 56], [21, 36], [37, 36]], true, 0.7), { color: C.inkPaper, seed: 501, S: 4, amp: 0.7, wave: 18, pad: 6 }));
+  // speech bubbles (tail left / tail right)
+  put('bubble', paperPiece(spline([[0, 0], [220, -6], [236, 40], [226, 86], [70, 90], [34, 118], [42, 88], [4, 84], [-8, 40]], true, 1), { color: C.off, seed: 502, S: 3 }));
+  put('bubbleB', paperPiece(spline([[0, 0], [220, -6], [236, 40], [226, 86], [190, 88], [200, 118], [160, 90], [4, 84], [-8, 40]], true, 1), { color: C.off, seed: 503, S: 3 }));
+  // problem-vignette props: a doc page, a file card, a chat card, a dark code strip
+  put('docPage', paperPiece(roundPoly([[0, 0], [360, 0], [360, 460], [0, 460]], 3), { color: C.off, seed: 504, S: 3, fibre: false, amp: 0.4 }));
+  put('fileCard', paperPiece(roundPoly([[0, 0], [300, 0], [300, 120], [0, 120]], 8), { color: C.grey, seed: 505, S: 3 }));
+  put('chatCard', paperPiece(roundPoly([[0, 0], [380, 0], [380, 330], [0, 330]], 18), { color: C.off, seed: 506, S: 3 }));
+  put('codeStrip', paperPiece(roundPoly([[0, 0], [640, 0], [640, 250], [0, 250]], 2), { color: C.inkPaper, seed: 507, S: 3 }));
+  // a paper tag (tool names, name tags)
+  put('tag', paperPiece(roundPoly([[0, 0], [250, 0], [280, 36], [250, 72], [0, 72]], 4), { color: C.off, seed: 508, S: 3 }));
+  // crowd heads in the five skin tones
+  const HEAD = spline([[0, -60], [44, -48], [52, 0], [36, 44], [0, 56], [-36, 44], [-52, 0], [-44, -48]], true, 1);
+  [C.skin1, C.skin2, C.skin3, C.skin4, C.skin5].forEach((col, i) => put(`miniHead${i + 1}`, paperPiece(HEAD, { color: col, seed: 509 + i, S: 3 })));
+  window.KITOUT = out; document.title = 'ready';
+} catch (e) { window.KITERR = String(e.stack || e); document.title = 'error'; }
+</script></body></html>

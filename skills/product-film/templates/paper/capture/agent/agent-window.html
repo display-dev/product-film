@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8"><title>agent</title>
+<!-- A neutral AI-agent chat window for the film: title bar, chat header, messages, typing dots, tool cards (busy and
+     done, with a preview of the page) and a result line with the URL. Content comes from agent.json. It shows no tool
+     name and no logo: a real agent's UI brings third-party branding, so the film names a tool in text if it must.
+     ?s=<state> shows the conversation at that state; ?w=720&h=560 is the narrow variant for 9:16. -->
+<style>
+@font-face{font-family:Geist;src:url(../../kit/fonts/geist.woff2) format("woff2");font-weight:100 900}
+@font-face{font-family:"Geist Mono";src:url(../../kit/fonts/geist-mono.woff2) format("woff2");font-weight:100 900}
+/* ── BRAND: the window is neutral; only --accent (done status, links, the primary button) carries the product's
+   colour. Replace these with your product's tokens. ── */
+:root{--accent:#0E8A7E;--accent-fg:#FFFFFF;--bg:#FFFFFF;--fg:#121212;--muted:#6B6E72;--muted-weak:#A3A6A9;--border:#E4E5E6;--surface:#F5F6F6;--card:#FFFFFF;--font:Geist,ui-sans-serif,system-ui,sans-serif;--mono:"Geist Mono",ui-monospace,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:transparent}
+body{font-family:var(--font);color:var(--fg);font-size:16px;line-height:1.5}
+.frame{width:1200px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg)}
+.bar{height:48px;display:flex;align-items:center;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border)}
+.dots{display:flex;gap:8px;width:96px}.dots i{width:12px;height:12px;border-radius:50%}
+.dots i:nth-child(1){background:#ff5f57}.dots i:nth-child(2){background:#febc2e}.dots i:nth-child(3){background:#28c840}
+.bar-title{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--muted)}.spacer{width:96px}
+.chat-head{height:42px;display:flex;align-items:center;gap:6px;padding:0 24px;border-bottom:1px solid var(--border);font-size:14px}
+.chat-head b{font-weight:700}.chat-head span{color:var(--muted)}
+.chat-body{height:490px;padding:26px 56px;display:flex;flex-direction:column;gap:20px;overflow:hidden;justify-content:flex-start}
+.msg{align-self:flex-end;background:var(--surface);border-radius:10px;padding:11px 16px;font-size:16px;max-width:620px}
+.typing{display:flex;gap:4px;padding:2px 4px;height:12px}.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted-weak)}.typing i:nth-child(2){opacity:.6}.typing i:nth-child(3){opacity:.35}
+.toolcard{width:680px;border:1px solid var(--border);border-radius:10px;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);overflow:hidden}
+.tool-head{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px}
+.toolcard.nobody .tool-head{border-bottom:0}
+.product{font-weight:600;font-size:14px;letter-spacing:-0.02em}
+.tool-head code{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.status{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;white-space:nowrap}
+.status.busy{color:var(--muted)}.status.done{color:var(--accent)}
+.spin{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--border);border-top-color:var(--muted)}
+.tool-body{display:flex;flex-direction:column;gap:14px;padding:14px}
+.tool-preview{height:196px;border-radius:8px;border:1px solid var(--border);overflow:hidden;background:#F5F2EA center top/100% auto no-repeat}
+.tool-actions{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:6px;padding:8px 13px;font-size:13px;font-weight:600;line-height:1}
+.btn.primary{background:var(--accent);color:var(--accent-fg)}.btn.ghost{border:1px solid var(--border);color:var(--fg);background:var(--card)}
+.result{display:flex;align-items:center;gap:9px;font-size:16px}
+.result a{font-family:var(--mono);font-size:14.5px;color:var(--accent);font-weight:500;text-decoration:none}
+.mark{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);font:700 12px var(--font);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.say{font-size:16px;max-width:720px}
+</style></head><body>
+<div class="frame" id="win">
+  <div class="bar"><div class="dots"><i></i><i></i><i></i></div><span class="bar-title" id="title"></span><div class="spacer"></div></div>
+  <div class="chat-head"><b id="chat"></b><span id="chatSub"></span></div>
+  <div class="chat-body" id="body"></div>
+</div>
+<script type="module">
+const Q = new URLSearchParams(location.search); const S = +(Q.get('s') || 0);
+const A = await (await fetch('agent.json')).json();
+const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+document.getElementById('title').textContent = A.title; document.getElementById('chat').textContent = A.chat; document.getElementById('chatSub').textContent = ` – ${A.title}`;
+const html = (it) => {
+  if (it.type === 'msg') {return `<div class="msg">${esc(it.text)}</div>`;}
+  if (it.type === 'typing') {return '<div class="typing"><i></i><i></i><i></i></div>';}
+  if (it.type === 'say') {return `<div class="say">${esc(it.text)}</div>`;}
+  if (it.type === 'card') {return `<div class="toolcard${it.preview ? '' : ' nobody'}"${it.id ? ` id="${it.id}"` : ''}><div class="tool-head"><span class="product">${esc(A.product)}</span><code>${esc(it.command)}</code>${it.busy ? '<span class="status busy"><i class="spin"></i>working</span>' : `<span class="status done">${esc(it.status)}</span>`}</div>${it.preview ? `<div class="tool-body"><div class="tool-preview prev"></div><div class="tool-actions">${(A.actions || []).map((a, i) => `<span class="btn ${i ? 'ghost' : 'primary'}">${esc(a)}</span>`).join('')}</div></div>` : ''}</div>`;}
+  if (it.type === 'result') {return `<p class="result"${it.id ? ` id="${it.id}"` : ''}><span class="mark">✓</span>${esc(it.text)}${it.url ? ` <a id="url${it.id ? it.id.replace(/\D/g, '') : ''}">${esc(it.url)}</a>` : ''}</p>`;}
+  return '';
+};
+// From scrollFrom on, earlier items are hidden except result lines, so the new exchange fits (as a chat scrolls).
+const visible = A.items.filter((it) => S >= it.s && (it.until == null || S < it.until) && !(A.scrollFrom != null && S >= A.scrollFrom && it.s < A.scrollFrom && it.type !== 'result'));
+document.getElementById('body').innerHTML = visible.map(html).join('');
+document.querySelectorAll('.prev').forEach((e) => { e.style.backgroundImage = `url(${A.preview})`; });
+if (Q.get('w')) { const w = +Q.get('w'); document.querySelector('.frame').style.width = `${w}px`; document.querySelectorAll('.toolcard').forEach((c) => { c.style.width = '100%'; }); const bd = document.getElementById('body'); bd.style.padding = '24px 32px'; bd.style.height = `${Q.get('h') || 560}px`;
+  const st = document.createElement('style'); st.textContent = '.result{flex-wrap:wrap;row-gap:2px}.result a{flex-basis:100%;padding-left:31px}'; document.head.appendChild(st); }
+await Promise.all([...document.querySelectorAll('.prev')].map((e) => new Promise((r) => { const i = new Image(); i.onload = r; i.onerror = r; i.src = A.preview; })));
+await document.fonts.ready; document.title = 'ready';
+</script></body></html>
