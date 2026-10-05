@@ -124,8 +124,8 @@ step until it passes.
     source, license, spend, anything published or deleted for capture); `python3 <film>/tools/readme.py vN`.
 12. **Review page.** Write `notes/review-vN.json` (what changed, what only the user can judge, decisions) and run
     `python3 <film>/tools/build-review.py vN`. It warns over 45 MB.
-13. **Publish, only when asked.** Publish the review page wherever the team reviews work: one page, many versions,
-    "What changed since vN" on top; never a new page per cut. Update `NOTES.md`: current cut, pipeline, what the user
+13. **Publish, only when asked.** Publish the review page on display.dev (`publish.md`): one page, a new version per
+    cut, "What changed since vN" on top; never a new page per cut. Read and answer reviewers' comments there. Update `NOTES.md`: current cut, pipeline, what the user
     rejected and why.
 
 For a change to the sound only, remix and remux: `bash <film>/tools/remux-audio.sh vN vN+1` copies the pictures bit

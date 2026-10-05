@@ -14,7 +14,7 @@ Keep this current before every session ends: the next session starts here.
 
 - **Current cut:** (none yet)
 - **Pipeline:** `film/render-all.sh vN`, then `tools/gates.py vN`; see notes/DECISIONS.md for why things are as they are.
-- **Review page:** (where the team reviews this film: one page, many versions)
+- **Review page:** (display.dev shortId and URL: one page per film, a new version per cut)
 - **Rejected, and why:**
 MD
 [ -f notes/DECISIONS.md ] || cat > notes/DECISIONS.md <<'MD'

@@ -101,7 +101,7 @@ They came out of review rounds on real cuts and override a brief where they conf
 | VMAF misaligned frames for AV1 | A WebM's 1 ms timebase | AV1 in MP4 (1/30 s timebase) |
 | Colors shifted between players | Tags that did not match the pixels | Convert with `scale=out_color_matrix=bt709:out_range=tv` and tag bt709 primaries, transfer and matrix |
 | The web set was not ordered by size | CRFs not tuned for this content | Read `deliver/web/vmaf.txt`; at VMAF ≥ 96 the order should be AV1 < HEVC < H.264 |
-| A review page over the host's upload limit | Videos are embedded as base64 | 720p CRF 24, a 1080p CRF 22 download, 9:16 at 540×960 CRF 25; `build-review.py` warns over 45 MB (50 MB fits most hosts) |
+| A review page over display.dev's 50 MB limit | Videos are embedded as base64 | 720p CRF 24, a 1080p CRF 22 download, 9:16 at 540×960 CRF 25; `build-review.py` warns over 45 MB (50 MB fits most hosts) |
 | ffmpeg in a loop ate the loop's input | ffmpeg reads stdin | `-nostdin` everywhere (the templates have it) |
 
 ## Sound

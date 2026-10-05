@@ -59,8 +59,10 @@ Per-route numbers, engines, gotchas and lessons: [camera rig](product-film/refer
 
 Describe the film: "make a 30-second launch film for the new share dialog", "recut the hero film with a shorter ending", "a paper-collage explainer of how comments reach the client". On Claude Code, `/product-film <what the film is about>` works too.
 
+Review happens on display.dev: the agent publishes one review page per film, each new cut becomes a new version of the same page, and it reads and answers your comments there. Without an account, the first publish is a 30-day preview you can claim.
+
 The skill reads what your project already has — `FILM.md` (your team's film notes), `DESIGN.md` or design tokens, `PRODUCT.md` or a voice guide, docs and changelog for the truth sheet — and asks only for what it cannot find. It presents candidates and frames; the taste calls stay with you.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE). Bundles [jq 1.7.1](https://github.com/jqlang/jq) (MIT, © 2012 Stephen Dolan) for the publish helper; full text in [`product-film/bin/jq.LICENSE`](product-film/bin/jq.LICENSE).

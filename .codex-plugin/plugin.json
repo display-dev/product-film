@@ -1,6 +1,6 @@
 {
   "name": "product-film",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Make short product films — hero loops, launch films, walkthroughs, store-listing promos, illustrated story films — as deterministic HTML timelines rendered with Playwright and cut with ffmpeg.",
   "author": { "name": "display.dev", "url": "https://display.dev" },
   "homepage": "https://display.dsp.so/Zgh7hwEe-product-film",

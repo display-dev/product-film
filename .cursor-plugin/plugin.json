@@ -1,7 +1,7 @@
 {
   "name": "product-film",
   "description": "Make short product films from your product's real UI: cinematic hero loops, pointer-driven walkthroughs, kinetic launch films and cut-paper story films, rendered deterministically with Playwright and ffmpeg.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "display.dev", "url": "https://display.dev" },
   "homepage": "https://display.dsp.so/Zgh7hwEe-product-film",
   "repository": "https://github.com/display-dev/product-film",

@@ -140,9 +140,9 @@ node <film>/render.js plan-A.json s1:600:780                            # re-ren
 The whole A+B render took about 10 minutes on 5–6 workers. After a change to one scene, re-render only the clips
 that use it.
 
-**Review page.** One page for every cut of the film, published wherever the team reviews work: one page, many versions, "What
-changed since vN" on top; never a new page per cut. Embed each cut once as base64, re-encoded at CRF 23 so the page
-stays under the host's upload limit (50 MB fits most), each with its own poster (A: a caption over the product; B: a
+**Review page.** One page for every cut of the film, published on display.dev (`publish.md`): a new version per cut,
+"What changed since vN" on top; never a new page per cut. Embed each cut once as base64, re-encoded at CRF 23 so the
+page stays under 50 MB, each with its own poster (A: a caption over the product; B: a
 card). A browser-extension store usually takes the promo as a video-host URL; upload `film-X_master.mp4` or
 `film-X.mp4`.
 
