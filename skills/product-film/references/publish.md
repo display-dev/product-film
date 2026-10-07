@@ -2,8 +2,10 @@
 
 Every film is reviewed on one display.dev page: the review page (cut, poster, what changed, scene table) is published
 there, each new cut becomes a new version of the same page, and feedback arrives as comments on it. This is the only
-step that reaches an external service. Publish only when the user asks, or when the procedure reaches the review step
-and the user has asked for a review page.
+step that reaches an external service, and it happens at the end of every cut without waiting to be asked: a request
+for a film includes its review page. Skip it only when the user said not to publish anything; then say where the page
+file is. `tools/review.sh` in every film folder does the build and the publish in one step (tiers 2 and 3 below; with
+`--build-only` for tier 1), and `assemble.sh` prints it as its last line.
 
 ## Transport: the first one available wins
 
@@ -16,7 +18,7 @@ Detect at run time, in this order. Do not retry across tiers.
    visibility, sharing and comments:
 
    ```sh
-   dsp publish <film>/review/review-vN.html --name "<Film title> – review" --company --client-source product-film-skill@0.2.0
+   dsp publish <film>/review/review-vN.html --name "<Film title> – review" --company --client-source product-film-skill@0.3.0
    ```
 
 3. **Anonymous helper.** With neither, run the bundled helper. It needs no account: it returns a 30-day preview URL and
@@ -34,6 +36,9 @@ If the host has no shell, go straight from tier 1 to telling the user where the 
 
 ## One page per film, one version per cut
 
+`tools/review.sh vN <film.mp4> "<title>"` follows these rules: the first run publishes with company visibility and keeps
+the page's shortId in `review/.shortid`; every later run reads the current version and publishes the new cut onto it.
+
 - **First cut:** publish with company visibility (`--company`, the CLI default) unless the user named another;
   reviewers are usually the team. Use `--share-with <emails>` to add outside reviewers by name, `--visibility public`
   only when asked.
@@ -41,7 +46,7 @@ If the host has no shell, go straight from tier 1 to telling the user where the 
 
   ```sh
   dsp get-metadata <shortId>            # read currentVersion first
-  dsp publish <film>/review/review-vN.html --id <shortId> --base-version <currentVersion> --client-source product-film-skill@0.2.0
+  dsp publish <film>/review/review-vN.html --id <shortId> --base-version <currentVersion> --client-source product-film-skill@0.3.0
   ```
 
   `--base-version` must equal the current version; a mismatch means someone else published since, so read the page

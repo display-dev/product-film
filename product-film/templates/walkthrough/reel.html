@@ -28,7 +28,7 @@ const SECTIONS = [
   { id: 'comment',  bars: 2, plate: 'dark',  kicker: 'tidewell comments', claim: 'Comment on the exact line.', fb: true },
   { id: 'versions', bars: 1, plate: 'light', kicker: 'tidewell versions', claim: 'Every version, same link.', in: 'wipe', fb: true },
   { id: 'verbs',    bars: 1, plate: 'dark',  kicker: 'tidewell share --private', claim: 'Share it your way.' },
-  { id: 'setup',    bars: 1, plate: 'light', claim: 'Start in one line.' },   // 2 bars: a held status row and a longer quiet stretch before the hit
+  { id: 'setup',    bars: 2, plate: 'light', claim: 'Start in one line.' },   // copy the install line, then the first prompt in an agent chat
   { id: 'end',      bars: 2, plate: 'dark' },
 ];
 </script>
@@ -204,21 +204,31 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--plate-dark
 .dbox{position:absolute;left:-24px;top:-6px;right:-26px;bottom:-22px;border:3.5px dashed var(--acc);border-radius:16px 22px 14px 24px;transform:rotate(-1.4deg)}   /* hand-drawn: uneven corners, a slight tilt */
 .spk{position:absolute;right:-74px;top:-40px;width:46px;height:46px;fill:var(--acc);opacity:0}
 
-/* setup */
-.scard{position:absolute;left:106px;top:262px;width:1180px;height:260px;border-radius:18px;background:var(--plate-dark);box-shadow:var(--shadow);padding:34px 38px;color:var(--text-on-dark)}
-.scard .lab{font:500 16px var(--font-mono);letter-spacing:.1em;color:var(--muted-on-dark)}
-.fld{margin-top:16px;height:78px;border-radius:12px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 26px;font:500 34px var(--font-mono);color:var(--text-on-dark);white-space:pre}
-.fld .pr{color:var(--accent-on-dark);margin-right:18px}
-.fld .car{background:var(--accent-on-dark)}
-.cpy{position:absolute;left:38px;bottom:30px;height:50px;min-width:236px;padding:0 24px;border-radius:11px;background:var(--accent-on-dark);color:var(--plate-dark);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;white-space:nowrap}
-.cpy.hov{background:color-mix(in oklab,var(--accent-on-dark) 86%,white)}
-.srow{position:absolute;left:106px;top:556px;width:1180px;height:82px;border-radius:14px;background:#fff;border:1px solid color-mix(in oklab,var(--plate-dark) 14%,transparent);display:flex;align-items:center;gap:16px;padding:0 26px;color:var(--ink);white-space:nowrap}
-.srow .dot{width:12px;height:12px;border-radius:50%;background:var(--accent)}
-.srow b{font-size:21px;font-weight:600}
-.srow span{font-size:16px;color:var(--muted)}
-.srow .tg{margin-left:auto;font:500 14px var(--font-mono);letter-spacing:.1em;color:var(--muted)}
+/* setup: an install line to copy, then an agent chat (an agent at work is a chat window, never a terminal: SKILL.md) */
+.ipill{position:absolute;left:106px;top:262px;width:1340px;height:84px;border-radius:14px;background:#fff;border:1px solid color-mix(in oklab,var(--plate-dark) 14%,transparent);display:flex;align-items:center;gap:18px;padding:0 14px 0 26px;font:500 27px var(--font-mono);color:var(--ink);white-space:pre}
+.ipill .pr{color:var(--accent)}
+.cpy2{margin-left:auto;height:54px;min-width:150px;padding:0 20px;border-radius:11px;background:var(--accent);color:var(--on-accent);font:700 19px var(--font);display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.cpy2.hov{background:color-mix(in oklab,var(--accent) 86%,white)}
+/* the agent chat window: header, messages, typing dots, a tool card, "Done." rows, the composer */
+.agw{position:absolute;left:106px;width:1340px;border-radius:18px;background:#fff;box-shadow:var(--shadow);overflow:hidden;color:var(--ink);font-family:var(--font)}
+.agw .ah{height:60px;display:flex;align-items:center;gap:10px;padding:0 24px;border-bottom:1px solid var(--border);font-size:19px;white-space:nowrap}
+.agw .ah>i{width:12px;height:12px;border-radius:50%;background:#D6D6D6;flex:none}
+.agw .ah b{margin-left:14px;font-weight:700}.agw .ah span{color:var(--muted)}
+.agw .ab{position:absolute;left:0;right:0;top:60px;bottom:110px;padding:30px 44px;display:flex;flex-direction:column;gap:20px;overflow:hidden}
+.umsg{align-self:flex-end;background:#F1F1F1;border-radius:14px;padding:14px 22px;font-size:28px;line-height:1.35;white-space:nowrap}
+.dts{display:flex;gap:7px;padding:6px 4px}.dts i{width:10px;height:10px;border-radius:50%;background:var(--muted-weak)}
+.arow{display:flex;align-items:center;gap:14px;font-size:28px;line-height:1.35;white-space:nowrap}
+.amk{width:24px;height:24px;flex:none;fill:var(--accent)}
+.chp{display:inline-flex;font:500 22px var(--font-mono);color:#3A3A3A;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin-right:10px}
+.comp{position:absolute;left:44px;right:44px;bottom:26px;height:72px;border:1px solid #DADADA;border-radius:14px;display:flex;align-items:center;padding:0 12px 0 22px;font-size:23px;white-space:pre;color:var(--ink)}
+.comp .ph{color:var(--muted-weak)}.comp .car{background:var(--accent)}
+.snd{margin-left:auto;width:48px;height:48px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;flex:none}
+.snd svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .mc{position:absolute;left:0;top:0;width:42px;height:42px;opacity:0;transform-origin:5px 3px;z-index:9}
 .mc svg{width:42px;height:42px;filter:drop-shadow(0 4px 7px rgba(0,0,0,.25))}
+/* footage inside a section (a proof window, style tiles): a stack of frames, one shown per film frame */
+.seq{position:absolute;inset:0}
+.seq img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;display:none}
 
 /* end card */
 .ewm{position:absolute;left:144px;top:300px;font-size:190px;font-weight:700;letter-spacing:-.055em;line-height:1;color:var(--fg);white-space:nowrap;transform-origin:0 50%}
@@ -335,6 +345,22 @@ const FEATURES = ['pages', 'comments', 'versions', 'client links'];
 const MARKS = ['lost in thread', 'which version?', 'copied by hand'];   // red-pen labels on the three copies
 const VERBS = [['private', '--private'], ['company', '--company'], ['client', '--client jordan@example.com'], ['public', '--public'], ['expire', '--expire 7d'], ['revoke', '--revoke']];
 const CMD = 'npx tidewell init';
+const ASKP = 'Share the spring brief with Jordan', REPLY = 'Done. Jordan gets a private link.';   // the first prompt and the agent's answer
+const MARK = '<svg class="amk" viewBox="0 0 24 24"><path d="M12 0c.9 6.6 4.8 10.6 12 12-7.2 1.4-11.1 5.4-12 12-.9-6.6-4.8-10.6-12-12 7.2-1.4 11.1-5.4 12-12z"/></svg>';
+const SEND = '<svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+// an agent chat window: title, body, and a composer with its own id prefix (idle shows "Ask your agent…")
+const agw = (id, top, h, title, body, cid) => `<div class="agw" id="${id}" style="top:${top}px;height:${h}px"><div class="ah"><i></i><i></i><i></i><b>${title}</b><span>– agent</span></div>
+  <div class="ab">${body}</div><div class="comp"><span class="ph" id="${cid}-ph">Ask your agent…</span><span id="${cid}-tx"></span><span class="car" id="${cid}-car"></span><span class="snd" id="${cid}-snd">${SEND}</span></div></div>`;
+// typing dots, drawn from time (no CSS animation, so every frame is reproducible)
+function dots(el, T, a, b) { el.style.display = T >= a && T < b ? 'flex' : 'none'; [...el.children].forEach((d, k) => { d.style.opacity = (.35 + .65 * (.5 + .5 * Math.sin(2 * Math.PI * (T * 1.6 - k * .22)))).toFixed(3); }); }
+// the composer: placeholder when empty, else the typed text with a caret
+function composer(cid, s, T, text = '', typing = false) { $(cid + '-ph').style.display = text ? 'none' : ''; $(cid + '-tx').textContent = text; caret($(cid + '-car'), s.t0 + T, typing, !!text || typing); }
+// footage: frames extracted at SEQ_FPS into media/<id>/001.jpg… (ffmpeg -ss A -i film.mp4 -t D -vf fps=30,scale=1920:-1 -q:v 3 media/<id>/%03d.jpg).
+// window.READY decodes every <img> before the first frame, so a frame never shows half-loaded. Unused by the example.
+const SEQ_FPS = 30, SEQN = {};   // SEQN = { id: frame count }
+const seqHTML = id => `<div class="seq" id="seq-${id}">${Array.from({ length: SEQN[id] }, (_, i) => `<img src="media/${id}/${String(i + 1).padStart(3, '0')}.jpg" alt="">`).join('')}</div>`;
+function seqShow(id, T, show = true) { const el = $('seq-' + id), k = show ? clamp(Math.floor(T * SEQ_FPS + 1e-6), 0, SEQN[id] - 1) : -1;
+  if (el.dataset.k !== String(k)) { [...el.children].forEach((im, i) => { im.style.display = i === k ? 'block' : 'none'; }); el.dataset.k = String(k); } }
 
 // ================= sections: markup =================
 const HTML = {};
@@ -374,8 +400,9 @@ HTML.versions = `<div class="win" id="vsw" style="left:560px;top:252px;width:125
   <div class="rail" style="width:390px"><div class="rh">History</div>${VERS.map((v, i) => `<div class="hrow" id="hr${i}"><b>v${i + 1}</b><div class="hn">${v.note}</div><div class="hm">${v.who} · ${v.when}</div></div>`).join('')}</div></div>`;
 HTML.verbs = `<div class="vb">${[0, 1].map(r => `<div class="vr">${VERBS.slice(r * 3, r * 3 + 3).map(([w], j) => { const i = r * 3 + j; return `<div class="vw" id="vw${i}">${w}${i === VERBS.length - 1
   ? `<div class="dbox" id="vdb"></div><svg class="spk" id="vsp" viewBox="0 0 24 24"><path d="M12 0c.9 6.6 4.8 10.6 12 12-7.2 1.4-11.1 5.4-12 12-.9-6.6-4.8-10.6-12-12 7.2-1.4 11.1-5.4 12-12z"/></svg>` : ''}</div>`; }).join('')}</div>`).join('')}</div>`;
-HTML.setup = `<div class="scard" id="scd"><div class="lab">IN YOUR TERMINAL</div><div class="fld"><span class="pr">$</span><span id="scmd"></span><span class="car" id="scar"></span></div><div class="cpy" id="scpy">Copy command</div></div>
-  <div class="srow" id="srw"><span class="dot" id="sdot"></span><b>Waiting for your first page</b><span>· Northfield Studio</span><span class="tg">CONNECTED</span></div>
+HTML.setup = `<div class="ipill" id="ipl"><span class="pr">$</span><span>${CMD}</span><span class="cpy2" id="scpy">Copy</span></div>
+  ${agw('sgw', 376, 520, 'spring-brief', `<div class="umsg" id="su">${ASKP}</div><div class="dts" id="sd"><i></i><i></i><i></i></div>
+  <div class="arow" id="sr">${MARK}${REPLY}</div><div><span class="chp" id="sc0">${PAGE_URL}</span></div>`, 'scp')}
   <div class="mc" id="smc">${ARROW}</div>`;
 HTML.end = `<div class="ewm" id="ewm">Tidewell<span class="car" id="ewc"></span></div>
   <div class="etg">${lines('shared docs for client work, | without the email chain')}</div>
@@ -453,18 +480,25 @@ FN.verbs = (T) => {
   const tb = VERBS.length * H + .04; $('vdb').style.clipPath = `inset(0 ${f2(100 - 100 * eio(seg(T, tb, tb + .2)))}% 0 0)`;
   pop($('vsp'), T, tb + .14, { s0: .2, r: lerp(-50, 0, eo(seg(T, tb + .14, tb + .5))) });
 };
-// setup: burst-types the command, the pointer clicks Copy on a half-beat, the status row rises on the next beat
+// setup (2 bars): the pointer copies the install line; the first prompt types into the agent's composer and is sent on
+// bar 2 with a click on Send; the agent's dots, then its answer and the link, a half-beat apart
 FN.setup = (T, s) => {
-  put($('scd'), { y: lerp(50, 0, eo(seg(T, 0, .3))) });
-  type($('scmd'), CMD, T, H); caret($('scar'), s.t0 + T, T < H + CMD.length / CPS, T >= H * .5);
-  const btn = $('scpy'), P = 3 * H;
-  btn.textContent = T >= P + .08 ? 'Copied ✓' : 'Copy command'; btn.classList.toggle('hov', T >= P - .1 && T < P + .08);
+  put($('ipl'), { y: lerp(40, 0, eo(seg(T, 0, .26))), op: seg(T, 0, .1) });
+  put($('sgw'), { y: lerp(40, 0, eo(seg(T, .1, .36))), op: seg(T, .1, .2) });
+  const btn = $('scpy'), P = 3 * H, S = BAR;
+  btn.textContent = T >= P + .08 ? 'Copied ✓' : 'Copy'; btn.classList.toggle('hov', T >= P - .1 && T < P + .08);
   btn.style.transform = `scale(${(1 - .05 * press(T, P)).toFixed(3)})`;
-  const bx = 106 + btn.offsetLeft + btn.offsetWidth / 2, by = 262 + btn.offsetTop + btn.offsetHeight / 2;   // layout offsets ignore transforms
-  // arrive, press, drift off and leave a beat later: timed from the click, so a longer section never parks the pointer
-  cursor($('smc'), T, [{ t: .34, x: bx + 260, y: by + 170 }, { t: P - .04, x: bx + 4, y: by + 6 }, { t: P + .3, x: bx + 7, y: by + 8 }, { t: P + 1.3, x: bx + 40, y: by + 30 }], [P], [.34, P + 1]);
-  const ur = eo(seg(T, 4 * H, 4 * H + .26)); put($('srw'), { y: lerp(26, 0, ur), op: ur.toFixed(3) });
-  $('sdot').style.transform = `scale(${(1 + .4 * (1 - seg((((s.t0 + T - OFFSET) / B) % 1 + 1) % 1, 0, .45))).toFixed(3)})`;   // pulses on the beat
+  // targets from getBoundingClientRect: offsetLeft/offsetTop chains break inside nested, transformed windows
+  const r = btn.getBoundingClientRect(), bx = r.left + r.width / 2, by = r.top + r.height / 2;
+  const sn = $('scp-snd').getBoundingClientRect(), sx = sn.left + sn.width / 2, sy = sn.top + sn.height / 2;
+  cursor($('smc'), T, [{ t: .4, x: bx + 200, y: by + 220 }, { t: P - .04, x: bx + 4, y: by + 6 }, { t: P + .25, x: bx + 6, y: by + 8 }, { t: S - .06, x: sx + 3, y: sy + 5 }, { t: S + .3, x: sx + 5, y: sy + 7 }, { t: S + 1.2, x: sx + 60, y: sy + 40 }], [P, S], [.4, S + .9]);
+  $('scp-snd').style.transform = `scale(${(1 - .12 * press(T, S)).toFixed(3)})`;
+  const tt = P + .3, n = Math.floor(clamp((T - tt) * CPS + 1e-6, 0, ASKP.length));
+  composer('scp', s, T, T < S ? ASKP.slice(0, n) : '', T >= tt && T < S);
+  pop($('su'), T, S, { s0: .85 }); $('su').style.display = T >= S ? '' : 'none';
+  dots($('sd'), T, S + .3, S + 3 * H);
+  const tr = S + 3 * H; $('sr').style.display = T >= tr ? 'flex' : 'none'; put($('sr'), { y: lerp(14, 0, eo(seg(T, tr, tr + .24))), op: seg(T, tr, tr + .14) });
+  pop($('sc0'), T, tr + H, { s0: .7 });
 };
 // end card (the hit): the wordmark focus-pulls in; tagline lines, the hairline, the feature line and the URL follow on half-beats
 FN.end = (T, s) => {
@@ -495,7 +529,7 @@ window.seek = function (t0) { const t = TOFF + t0;
     if (s.out === 'dive') dive(s, T);
   } };
 // every face the page uses, loaded before the first frame (a face used only by a hidden section would otherwise load late)
-window.READY = Promise.all(['400', '500', '600', '700'].map(w => `${w} 20px Geist`).concat(['500 20px "Geist Mono"', '600 20px "Geist Mono"', '400 20px "Caveat Brush"', '400 20px Anton', '400 20px "Instrument Serif"', 'italic 400 20px "Instrument Serif"'])
-  .map(f => document.fonts.load(f, 'Aa1–•·→').catch(() => {}))).then(() => window.seek(0));
+window.READY = Promise.all([...document.images].map(im => im.decode().catch(() => {})).concat(['400', '500', '600', '700'].map(w => `${w} 20px Geist`).concat(['500 20px "Geist Mono"', '600 20px "Geist Mono"', '400 20px "Caveat Brush"', '400 20px Anton', '400 20px "Instrument Serif"', 'italic 400 20px "Instrument Serif"'])
+  .map(f => document.fonts.load(f, 'Aa1–•·→').catch(() => {})))).then(() => window.seek(0));
 window.seek(0);
 </script></body></html>

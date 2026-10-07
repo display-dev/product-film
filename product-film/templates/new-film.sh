@@ -18,6 +18,7 @@ fi
 
 rsync -a --ignore-existing --exclude setup.sh "$T/$ROUTE/" "$DST/"
 rsync -a --ignore-existing "$T/common/" "$DST/"
+[ -f "$DST/.skill-dir" ] || dirname "$T" > "$DST/.skill-dir"   # tools/review.sh finds scripts/publish.sh through it
 
 cd "$DST"
 if ! node -e "require('./pw.cjs')" >/dev/null 2>&1; then

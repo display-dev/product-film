@@ -48,3 +48,4 @@ ffmpeg -v error -i film_master.mp4 -vf scale=1280:720 -c:v libx264 -preset slow 
 ffmpeg -v error -ss "$POSTER_AT" -i film_master.mp4 -frames:v 1 -q:v 3 poster.jpg -y
 ffmpeg -v error -i film_master.mp4 -vf "fps=1,scale=240:-1,tile=8x5" -frames:v 1 sheet.jpg -y
 echo; echo "built in $(pwd):"; for f in film.mp4 film_720.mp4; do printf "%s  %ss  %sMB\n" "$f" "$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f")" "$(( $(wc -c < "$f") / 1048576 ))"; done
+echo "next: bash $(pwd)/tools/review.sh vN film.mp4 \"<film title>\"   # publishes this cut's review page; a cut is delivered only with it"

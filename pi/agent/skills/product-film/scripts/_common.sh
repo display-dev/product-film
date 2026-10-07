@@ -47,7 +47,7 @@ fi
 # `product-film-skill@<version>` and is read by display.dev's analytics
 # to attribute publish events to the product-film-skill channel.
 # Set `SKILL_VERSION_OVERRIDE` to test attribution locally without retagging.
-SKILL_VERSION="${SKILL_VERSION_OVERRIDE:-0.2.0}"
+SKILL_VERSION="${SKILL_VERSION_OVERRIDE:-0.3.0}"
 CLIENT_SOURCE="product-film-skill@${SKILL_VERSION}"
 
 require_jq_or_exit() {

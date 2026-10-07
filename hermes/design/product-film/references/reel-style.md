@@ -22,7 +22,7 @@ voice, mixed to −14 LUFS.
 | Proof | 1 | One claim of proof ("We made this page with it", "Your client opens one link") with its key word tinted in the accent, and a real page sliding up in a browser window and scrolling. |
 | Capabilities | 1–4 each | One section per capability: a mono kicker with the exact command or feature, a claim, and the product doing it. A section with several examples (three before-and-afters) gets 4 bars; a quick one gets 1. |
 | Verbs | 1 | A list beat: the product's commands or options pop in one per half-beat; the newest is highlighted, the rest settle. |
-| Setup | 2 | How to start: a command or prompt types in a field, a pointer clicks Copy → Copied ✓, and a status row shows the next state. The music drops back here. |
+| Setup | 2 | How to start: the pointer copies the install line (Copy → Copied ✓), then the first prompt types into an agent chat's composer, is sent, and the agent's dots turn into its first answer. The music drops back here. |
 | End card | 2 | The hit. Wordmark with the caret, a mono tagline, a hairline, a mono feature line, a URL pill, and optionally a small maker line. |
 
 The reference ran range, reveal, default, proof, four capability sections, setup, end. Keep the arc
@@ -36,9 +36,30 @@ The reference ran range, reveal, default, proof, four capability sections, setup
 | Section lengths | Main beats 2 bars, quick beats 1 bar, a multi-example beat up to 4 bars. The reference's bar lines fell at 0.005 s + n × 1.904 s; its cuts at 3.82, 22.87, 26.67 and 30.48 s sat on them and one (7.73 s) landed 0.11 s late. |
 | Events inside a section | Wall rows on beats. Product state changes, list words and tagline lines on half-beats (0.24 s). Product clicks through options on half-beats too. |
 | Drop and hit | The drop lands on the reveal (the wordmark); the second hit lands on the end card. Put a quieter stretch under the setup section so the end card has something to land on. |
-| Track | Lay a track the user supplies (`kinetic-style.md` § Music for start point and loudness). Find its tempo and bar lines with `beatmap.py`, then set `BPM` and the offset at the top of `reel.html`. With no track yet, pick a tempo (120–128 BPM suits a launch) and cut to its grid, so a track can go under it later without re-timing. Composing music stays out of scope. |
+| Track | Lay a track the user supplies (`kinetic-style.md` § Music for start point and loudness). Find its tempo and bar lines with `beatmap.py`, then set `BPM` and the offset at the top of `reel.html`. With no track yet, pick a tempo (120–128 BPM suits a launch) and cut to its grid, so a track can go under it later without re-timing. Fit it with `reel-music.sh` (below). Composing music stays out of scope. |
 
 A transition may start up to 0.1 s before the bar so that it lands on it. Never cut between beats.
+
+### Fitting the track
+
+A track has its own shape: a quiet build, the drop, a long loud stretch, a breakdown, a re-hit. Fit the film's sections
+to it by editing the track in whole bars, never by moving cuts off the grid.
+
+- Start the track a whole number of bars before its drop, so the drop lands on the reveal: two bars when the film opens
+  on the range wall, more when a story comes first.
+- Cut whole bars out of the loud stretch until the breakdown falls under setup and the re-hit on the end card. In a
+  loop-based track a cut on a bar line is inaudible as a seam in most places; still say that it needs the user's ears.
+- `reel-music.sh` does both: `BPM=… DROP=… KEEP="-2:9,12:17" bash <film>/reel-music.sh <track> R` keeps track bars −2
+  to 9 and 12 to 17 around the drop, joins them with 12 ms fades, levels to −16 LUFS and lays the result under every
+  `film-R*.mp4`. It pads the audio to the film's length: an audio track even 14 ms short makes `-shortest` drop the
+  last frame.
+
+### Slower or faster
+
+When the whole reel should run a little slower ("slow the pacing just a tiiiny bit"), stretch the music, not the
+cuts: `TEMPO=0.95` plays the edit 5 % slower with the pitch kept, and `BPM` in `reel.html` becomes `BPM × 0.95`. Every
+section keeps its bars and every cut stays on the beat. Slow burst typing to match (`CPS` 50 → 44). 5 % was enough for
+"a tiny bit"; past about 8 % most tracks start to sound dragged.
 
 ## The look
 
@@ -49,6 +70,7 @@ A transition may start up to 0.1 s before the bar so that it lands on it. Never 
 | A mono kicker above each claim names the exact command or feature, in a faint pill on dark plates. | It ties each claim to something the viewer can type or find. |
 | One accent: the second half of the tagline, one tinted word in a claim, the highlighted list word. | More accents compete with the product's own colours. |
 | Product screens in clean windows with a soft shadow, at fidelity, playing their own loops where they have them. | The proof is the real product, not an illustration of it. |
+| An AI agent at work is an agent chat window (`SKILL.md` § Product fidelity): the template's `agw()` window with messages, typing dots, tool cards and a composer. | Terminals read as setup the viewer would have to do. |
 | A small mono "Fictional brands" label bottom-right whenever made-up brands appear in product screens. | Viewers read polished fixtures as customers. |
 | List words about 100 px; the range claim about 128 px, the reveal tagline about 106 px, the reveal wordmark about 230 px, the end-card wordmark about 190 px. | List beats read at a glance; the opening and the last frame belong to the name and the promise. |
 
@@ -66,6 +88,14 @@ A transition may start up to 0.1 s before the bar so that it lands on it. Never 
   phrase: a plate wipe, the next plate rising from the bottom in 0.10–0.15 s. To leave a product section: a dive, the
   window scaling up to fill the frame over about 0.25 s, then the cut. No dissolves.
 
+## Footage inside a reel
+
+A proof window or a wall of style tiles can play real footage. Extract it as frames
+(`ffmpeg -ss A -i film.mp4 -t D -vf fps=30,scale=1920:-1 -q:v 3 media/<id>/%03d.jpg`), list the counts in `SEQN`,
+and draw them with the template's `seqHTML(id)` and `seqShow(id, T)`: a stack of `<img>`, one shown per frame,
+decoded before the first frame by `window.READY`. A `<video>` element cannot be seeked frame-exactly from `seek(t)`.
+Give each shot the frames it needs at the reel's tempo: a two-beat shot at 121 BPM needs 30 frames at 30 fps.
+
 ## Copy
 
 - One claim per section, 3–6 words, a complete sentence with a period: "Comment on the exact line.", "Every version,
@@ -75,11 +105,15 @@ A transition may start up to 0.1 s before the bar so that it lands on it. Never 
   prove it.
 - The kicker is literal: the command, flag or menu item, as the product spells it.
 - "Free" or "open source" qualifies exactly what is free or open; a reel moves too fast for footnotes.
+- A section that says "made with it" (a proof window, a wall of work, style tiles) shows only work the product actually
+  made. A film or page that the style was only modelled on is a reference, not proof: leave it out or name it as the
+  reference. Reviewers know which is which.
 
 ## Template and commands
 
-`templates/walkthrough/reel.html` (with `plan-R.json`) is a working Tidewell reel of 14 bars at 126 BPM (26.7 s):
-range, reveal, default, proof, two capability sections, a verbs list, setup and the end card, with every device above.
+`templates/walkthrough/reel.html` (with `plan-R.json`) is a working Tidewell reel of 15 bars at 126 BPM (28.6 s):
+range, reveal, default, proof, two capability sections, a verbs list, setup (an install line and an agent chat) and the
+end card, with every device above. The footage helpers (`seqHTML`, `seqShow`) are in it, unused by the example.
 Its first script holds `const BPM, OFFSET` and the `SECTIONS` table (id, bars, plate, entry `in: 'wipe'`, exit
 `out: 'dive'`, kicker, claim, the "Fictional brands" flag); every time on the page derives from them, and
 `window.SECTIONS` exposes the section times for previews and the review page's scene table.
@@ -90,6 +124,8 @@ PAGE=reel.html node <film>/previewq.js out.jpg "beat=R@12.4"          # single f
 node <film>/audit.js plan-R.json                                      # pointer rests, one-frame jumps, stateful seeks
 node <film>/render.js plan-R.json                                     # or PLANONLY + plan-jobs.py for parallel workers
 bash <film>/assemble.sh plan-R.json                                   # film-R.mp4, film-R_master.mp4, film-R_720.mp4, poster-R.jpg, sheet-R.jpg
+BPM=127.5 DROP=30.44 KEEP="-2:999" bash <film>/reel-music.sh <track> R   # the track under film-R*.mp4 → film-R-music*.mp4
+bash <film>/tools/review.sh v1 film-R-music.mp4 "<title>"              # the cut's review page, built and published
 ```
 
 - `OFFSET` is the film time of the first bar line; before it the first section's plate holds as a lead-in.
@@ -102,8 +138,9 @@ bash <film>/assemble.sh plan-R.json                                   # film-R.m
 
 ## Review page
 
-Add a scene-by-scene table (time, section, what is on screen) under the player, then review notes and open questions.
-A reel is too fast to discuss without timestamps, and reviewers comment against the table.
+Put a scene-by-scene table (time, section, what is on screen) in `review/notes-vN.md` under "## Scene by scene", then
+the review notes and open questions; `tools/review.sh` renders it under the player. A reel is too fast to discuss
+without timestamps, and reviewers comment against the table.
 
 ## Gotchas already paid for
 
@@ -113,3 +150,7 @@ A reel is too fast to discuss without timestamps, and reviewers comment against 
   product named in mock comments). Scan every capture's visible text and replace them with fictional names.
 - A 44 s first cut tightened to 24 s and settled at 33 s. Cut capabilities, not bars: a section shorter than one bar
   cannot be read, and the grid only works in whole bars.
+- Kickers and claims are HTML. A literal `<what the film is about>` vanished as an unknown tag; write `&lt;` and `&gt;`.
+- Pointer targets inside a window that moves (a chat window rising in, a send button in its composer) come from
+  `getBoundingClientRect()`. Chains of `offsetLeft`/`offsetTop` miss the window's transform and land the click beside
+  the button.

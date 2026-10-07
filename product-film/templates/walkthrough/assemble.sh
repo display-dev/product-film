@@ -29,3 +29,4 @@ ffmpeg -v error -y -ss "$(python3 -c "print(max(0, round($D-2.2,2)))")" -i "film
 ffmpeg -v error -y -i "film-${NAME}_master.mp4" -vf "fps=1,scale=240:-1,tile=8x9" -frames:v 1 "sheet-${NAME}.jpg"
 for f in "film-${NAME}.mp4" "film-${NAME}_720.mp4"; do printf "%s  %ss  %sMB\n" "$f" "$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f")" "$(( $(wc -c < "$f") / 1048576 ))"; done
 echo "in $(pwd)"
+echo "next: bash $(pwd)/tools/review.sh vN film-${NAME}.mp4 \"<film title>\"   # publishes this cut's review page; a cut is delivered only with it"

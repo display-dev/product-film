@@ -47,9 +47,9 @@ bash <skill>/templates/new-film.sh walkthrough ~/films/launch
 | Template | Contents |
 |---|---|
 | `cinematic/` | 3D beat engine with camera rig, depth of field and seeded particles; renderer; assembly into master, web, review and poster files |
-| `walkthrough/` | 2D engine with time-warp holds, clip plans, pointer and caret; the kinetic example (morphs, wet-ink type, a slot reel, a square cut) and the reel example (sections on a tempo grid, plate wipes, a beat-map tool for your track) on the same pipeline; parallel rendering; frame preview; motion audit |
+| `walkthrough/` | 2D engine with time-warp holds, clip plans, pointer and caret; the kinetic example (morphs, wet-ink type, a slot reel, a square cut) and the reel example (sections on a tempo grid, plate wipes, an agent chat window, footage helpers, a beat-map tool and a bar-accurate music editor for your track) on the same pipeline; parallel rendering; frame preview; motion audit |
 | `paper/` | Canvas engine driven by one timeline, a frozen paper kit and jointed cast, capture harnesses for your app, CLI and an agent window, synthesized pen-and-paper sound, review sheets, quality gates and a delivery set |
-| `common/` | Playwright loader, DOM capture and snapshot library, an engraved-chart background generator in your brand color |
+| `common/` | Playwright loader, DOM capture and snapshot library, an engraved-chart background generator in your brand color, and `tools/review.sh`, which builds each cut's review page and publishes it on display.dev |
 
 ### References
 

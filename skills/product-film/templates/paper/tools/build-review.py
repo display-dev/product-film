@@ -1,8 +1,8 @@
 # Build the review page: python3 <film>/tools/build-review.py vN  → review/review-vN.html (videos inlined as base64)
 # Content comes from notes/review-vN.json (write it per cut; see the keys below); the videos, captions and the checks
 # table come from out/vN/ and the timeline; colours and the wordmark from timeline.json "brand".
-# Publish it only when the user asks, on display.dev (references/publish.md): one page per film, a new version per cut
-# (dsp publish --id <shortId> --base-version <n>), "What changed since vN" on top. Keep it under 50 MB.
+# Publish it at the end of every cut, without waiting to be asked: bash <film>/tools/review.sh vN (references/publish.md):
+# one page per film, a new version per cut, "What changed since vN" on top. Keep it under 50 MB.
 # notes/review-vN.json: {"lede": "…", "changesTitle": "Your notes, and what changed", "changes": [["note", "what changed"]],
 #   "judge": [["question only a person can answer", "why"]], "decisions": [["Topic", "decision and reason"]],
 #   "files": ["<film>/deliver/ – masters, upload copies, .srt, web set, poster"], "sound": "…", "spend": "None"}
@@ -102,5 +102,5 @@ v.addEventListener('timeupdate',()=>{{const t=v.currentTime;bs.forEach((b,i)=>b.
 dst = f'{F}/review/review-{V}.html'; open(dst, 'w').write(page)
 size = os.path.getsize(dst) / 1048576
 print(dst, f'{size:.1f} MB', f'(720p {mb(v720):.1f}, 1080p {mb(v1080):.1f} MB)')
-print('publish: see references/publish.md (first cut: dsp publish <page> --company; later cuts: --id <shortId> --base-version <n>)')
+print('publish: bash tools/review.sh ' + V + ' <film>  (or review.sh publishes it for you when it ran this build); a cut is delivered only with its review page')
 if size > 45: print('WARNING: over 45 MB; display.dev caps a page at 50 MB. Raise the CRF of the embedded copies.')

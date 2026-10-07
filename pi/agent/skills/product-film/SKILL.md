@@ -1,6 +1,6 @@
 ---
 name: product-film
-version: 0.2.0
+version: 0.3.0
 license: MIT
 user-invocable: true
 argument-hint: "[<what the film is about> | <film folder to recut>]"
@@ -10,6 +10,7 @@ allowed-tools:
   - Bash(bash */product-film/templates/new-film.sh *)
   - Bash(bash $SKILL_DIR/scripts/publish.sh *)
   - Bash(bash */product-film/scripts/publish.sh *)
+  - Bash(bash */tools/review.sh *)
   - Bash(dsp get-metadata *)
   - Bash(dsp comment list *)
 description: "Make a short product film (website hero loop, landing section, launch film, feature walkthrough, store-listing promo, social cut, illustrated story film) in which the product appears as its own real UI, drawn frame by frame from an HTML timeline, rendered with Playwright and cut with ffmpeg. Four routes: licensed footage cut against cinematic product beats, product beats only, a pointer-driven walkthrough with captions or text cards (plain or kinetic), or a cut-paper collage in which an illustrated cast tells a story over real UI captured from the code with fictional data. Use when asked for a product film, hero video, promo or demo video, launch film, explainer, walkthrough video, paper or collage film, or to recut one. Not for plain screen recordings or voice-over walkthroughs; laying a supplied music track under a finished cut is in scope."
@@ -106,6 +107,7 @@ The UI on screen must be the product's own components, not a mock-up.
 - Before mirroring any UI, check for recent redesigns (`git log --since="1 month ago" -- <ui paths>`). Stale UI costs a full review round.
 - Fonts: Routes A–C load web fonts at render time, and the renderer waits for `document.fonts.ready`. Route D uses local font files only (`tools/fetch-fonts.mjs`).
 - Data on screen is fictional and looks real at a glance: fictional people, companies and emails (`@example.com`), never real customers.
+- An AI agent at work appears as an agent chat window: a header, the person's messages, typing dots, a tool card for each command it runs (with that command's real output), its answers, and a composer. Never a terminal, unless the film is about a command-line tool. Viewers read a terminal as setup they would have to do themselves, and two review rounds replaced terminals with chat windows.
 
 When a component is not available in code, rebuild it from the product's tokens and shipped CSS, and say so on the review page.
 
@@ -119,12 +121,13 @@ Route D follows its own gated procedure in `references/paper-collage.md § Proce
 4. **Beats.** Start the film folder (§ Start a film); replace the example beats with the product's; build one beat at a time and check it with a contact sheet (`ffmpeg -vf "fps=2.5,scale=480:-1,tile=4x2" -frames:v 1`) before rendering the next. Route C: build the kinetic cut; build a captions or cards cut only when the user asks. Reel: set the tempo and section bars first (`beatmap.py` on the track), then build the sections on that grid.
 5. **Render** with the template's `render.js`.
 6. **Assemble** with `assemble.sh`: cut list with in-points, durations and per-cut comments; build; look at the whole-film contact sheet at 1 fps. Route C: run the checks in `references/walkthrough.md § Check before every publish`, `audit.js` first.
-7. **Review page.** One HTML page with the 720p cut and the poster embedded as base64 and "What changed since cut vN" on top, published on display.dev (`references/publish.md`). Republish each cut as a new version of the same page (`--id`, `--base-version`); never a new page per cut. Send the MP4 as a file too. Post frames, not prose, when asking for a decision.
+7. **Review page.** Every cut ends with its review page published, without waiting to be asked: a request for a film includes its review page. Write `review/notes-vN.md` (what changed, the scene table, the decisions), then run `bash <film>/tools/review.sh vN <film.mp4> "<title>"`. It builds one self-contained HTML page (the cut and poster embedded as base64, "What changed since cut vN" on top) and publishes it on display.dev as a new version of the film's one page (`references/publish.md`); never a new page per cut. `assemble.sh` prints this command as its last line. Skip publishing only when the user said not to publish anything, and then say where the page is. Send the MP4 as a file too. Post frames, not prose, when asking for a decision.
 8. **Loop on feedback.** Read the open comment threads on the review page, act on each note in one new version, reply in each thread with what changed, resolve it, and record durable taste notes in the project's `FILM.md`.
 9. **Ship.** Hand the 1080p web file and the poster (the same frame as the film's own poster) to the site's video pipeline.
 
 ## Review discipline
 
+- A cut is delivered only when its review page is published: the reply leads with the page's URL. A cut reported without one is unfinished work, however good the film. (One cut was delivered as files only because a project note said "review pages only when asked"; the user had to ask why.)
 - One review page, many versions, the change log on top of each.
 - Before sending any cut, look at four frames of every changed beat at full size: its start, middle, end and the frame after the last change. Clipping at the frame edge and blurred children are the two recurring defects.
 - Every walkthrough-pipeline cut (plain, kinetic, reel): `audit.js` reports no problems before it is sent. Stuck pointers and one-frame flickers are hard to see in stills and easy for the viewer to see.
@@ -145,4 +148,4 @@ Route D follows its own gated procedure in `references/paper-collage.md § Proce
 - Choose the shoot, write the shot outline, buy a license, or make taste calls. Present candidates and frames; the user decides.
 - Screen-record the real application as the film. Route D captures stills from the real code on fictional data and composes them.
 - Compose music or record voice. Laying a track the user supplies under a finished cut is in scope: `references/kinetic-style.md § Music`.
-- Publish anything except the review page on display.dev, and that only when the user asks.
+- Publish anything except the film's review page on display.dev. That page is published at the end of every cut (§ Procedure, step 7); nothing else is.
