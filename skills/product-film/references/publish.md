@@ -2,10 +2,20 @@
 
 Every film is reviewed on one display.dev page: the review page (cut, poster, what changed, scene table) is published
 there, each new cut becomes a new version of the same page, and feedback arrives as comments on it. This is the only
-step that reaches an external service, and it happens at the end of every cut without waiting to be asked: a request
-for a film includes its review page. Skip it only when the user said not to publish anything; then say where the page
-file is. `tools/review.sh` in every film folder does the build and the publish in one step (tiers 2 and 3 below; with
-`--build-only` for tier 1), and `assemble.sh` prints it as its last line.
+step that reaches an external service, so where it goes is settled once per film (`SKILL.md` § Inputs, 6): the
+project's `FILM.md` answers it, or the agent asks once at kickoff. The answer lives in `review/.publish`:
+
+| `review/.publish` | What every cut does |
+|---|---|
+| `company` | Publish for the team (company visibility). The default answer to offer. |
+| `share:<email>,<email>` | Company visibility plus the named reviewers. |
+| `private` / `public` | That visibility. `public` only when the user chose it. |
+| `anonymous` | A 30-day preview link with no account behind it (tier 3). Only on an explicit yes; it cannot be versioned. |
+| `no` | Build the page and publish nothing; the reply gives the file's path. |
+
+With an answer recorded, every cut follows it without asking again. `tools/review.sh` in every film folder reads it and
+does the build and the publish in one step (tiers 2 and 3 below; `--build-only` for tier 1); with no answer recorded it
+builds the page and stops so the agent asks. `assemble.sh` prints it as its last line.
 
 ## Transport: the first one available wins
 
@@ -36,8 +46,9 @@ If the host has no shell, go straight from tier 1 to telling the user where the 
 
 ## One page per film, one version per cut
 
-`tools/review.sh vN <film.mp4> "<title>"` follows these rules: the first run publishes with company visibility and keeps
-the page's shortId in `review/.shortid`; every later run reads the current version and publishes the new cut onto it.
+`tools/review.sh vN <film.mp4> "<title>"` follows these rules: the first run publishes with the recorded visibility and
+keeps the page's shortId in `review/.shortid`; every later run reads the current version and publishes the new cut onto
+it (the page keeps its visibility).
 
 - **First cut:** publish with company visibility (`--company`, the CLI default) unless the user named another;
   reviewers are usually the team. Use `--share-with <emails>` to add outside reviewers by name, `--visibility public`

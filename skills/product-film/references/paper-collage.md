@@ -60,7 +60,7 @@ answer cannot be inferred; otherwise decide, and log the decision with its reaso
    150 px. Frame 0 is the thumbnail, and the first 2 s read on their own.
 7. **Sound.** SFX only, or silent. Voice and music stay empty tracks unless the user funds and asks for them.
 8. **Spend and publishing.** Zero spend by default: no stock, no image, video or audio models. The only thing
-   published is the review page, at the end of every cut (`publish.md`). Nothing is published for capture.
+   published is the review page, at the end of every cut, as the film's recorded answer allows (`SKILL.md` § Inputs, 6). Nothing is published for capture.
 9. **Names.** Fictional people and companies only (the template's fiction: Tidewell, Northfield Studio, Maya Chen,
    Sam Rivera, Priya Nair, Jordan Ellis, `@example.com`). Name third-party tools in text, never with their logos.
    Follow the project's naming rules (`VOICE.md`, `PRODUCT.md` or the brief).
@@ -124,7 +124,7 @@ step until it passes.
     source, license, spend, anything published or deleted for capture); `python3 <film>/tools/readme.py vN`.
 12. **Review page.** Write `notes/review-vN.json` (what changed, what only the user can judge, decisions) and run
     `python3 <film>/tools/build-review.py vN`. It warns over 45 MB.
-13. **Publish, every cut.** `bash <film>/tools/review.sh vN` builds and publishes the review page on display.dev (`publish.md`): one page, a new version per
+13. **Publish, every cut.** `bash <film>/tools/review.sh vN` builds the review page and publishes it as `review/.publish` says (`publish.md`): one page, a new version per
     cut, "What changed since vN" on top; never a new page per cut. Read and answer reviewers' comments there. Update `NOTES.md`: current cut, pipeline, what the user
     rejected and why.
 
