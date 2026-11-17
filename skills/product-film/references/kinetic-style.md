@@ -163,6 +163,35 @@ ffmpeg -nostats -i bed.wav -af ebur128=peak=true -f null - 2>&1 | sed -n '/Summa
 ffmpeg -i film-K.mp4 -i bed.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart film-K-music.mp4
 ```
 
+## Problem-and-turn films
+
+A second studied reference was a 46 s feature launch at 1080p60, with a music bed and no voice. It explains a feature
+that happens out of sight (agents read a document in a machine format). It runs as an argument: name, proof figure,
+problem, "so we built", how, benefit, name again, logo. Words take about 56 % of the film. Use these patterns when the
+film has to make an argument rather than show one flow. A walkthrough keeps the rules above.
+
+| Pattern | Measured | The bad film it prevents |
+|---|---|---|
+| **Plant a question, answer it on the product.** A character asks a short question in a bubble over the real UI ("Who is Sarah?", next to the highlighted word). 12–15 s later the camera closes in on the exact answer in the product. | Question at 17.8 s, answer at 32 s, same name in both. | A feature shown as a capability list: the viewer sees it work but not why it matters. |
+| **One fixed card unit.** Each sentence card types in 1.2–1.5 s whatever its length, holds about 1.5 s, and runs 3.0 s. Product shots run 3–5 s between cards. | 8 of 11 cuts on the 3.0 s grid. Cards of 5–11 words. | Sentences that carry the argument leave before the viewer finishes them. Use this unit only for argument films; a walkthrough gets readability from scale. |
+| **Keep the motion vector across a hard cut.** The card drifts up, then accelerates out (top edge 416 → 390 → 312 px over 1.35 s). The next surface enters from below. | Every card exit, and both document entries. | A hard cut that reads as a jump, or a morph forced between two shots that have nothing in common. |
+| **A figure as a zoom-out.** "Over N documents …" becomes one decelerating pull back from the hero document to a wall of about 20 × 12 real documents. | 9.0–12.6 s, one move. | A large number shown as type alone, which reads as a claim. |
+| **Dim to isolate.** At close range, all lines except the answer drop to about 30 %, and a selection block sweeps the answer (0.9 s, then a hold of about 1.5 s). | 31.7–34.1 s. | A second zoom on top of a close-up, which makes the text soft and leaves the eye to search. |
+| **One accent for the mark and the end.** The highlighter on the word the character touches is the same color as the end plate. | One color in both. | An accent that means nothing; here it links "the word in question" to the brand. |
+| **Repeat the name with one scope line.** The end repeats the opening sentence with a full stop and adds one small line on where the feature is available. | 37.6–41 s. | A viewer who likes the film and does not know where to get the feature. Also put a URL or next step on the end card, which the reference did not. |
+
+What the reference got wrong, so do not copy it:
+
+- It opened on the transformation with no words, which only made sense next to the post's text. Keep the feature-launch
+  rule: say the promise in words at the start.
+- It showed the same transformation twice. The second time (4.3 s) added little and was the slowest part.
+- The answer was set at about 28 px mono in a 1080 frame, which a phone cannot read. Set the payoff at this style's
+  text size.
+- Its wet ink cycled five tints. Keep one accent.
+- Its characters drifted while idle. Characters travel, land next to a word and stop (§ Fitting it to the walkthrough
+  rules).
+- The end card held 4.6 s with no URL.
+
 ## Engine notes
 
 `templates/walkthrough/kinetic.html` is the example engine: a 21 s Tidewell film (lockup, a prompt typed as a

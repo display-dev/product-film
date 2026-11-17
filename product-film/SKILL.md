@@ -29,7 +29,7 @@ Builds short product films, silent unless the user supplies a music track, in wh
 |---|---|
 | `references/camera-rig.md` | Routes A and B, before writing a beat: the rig code and the numbers tuned across sixteen cuts. Do not re-derive them. |
 | `references/walkthrough.md` | Route C, and any kinetic or reel cut, before anything else: the pointer, flicker, current-UI and true-claims rules, the numbers, the engine, the checks and the pipeline they share. The cinematic defaults (3D rig, glows, particles, grain, drift, tilt, a zoom on every beat) were rejected for these films. |
-| `references/kinetic-style.md` | Route C by default, and a Route B film that should feel fast and designed. It changes the look and pacing, not the pointer and flicker rules. |
+| `references/kinetic-style.md` | Route C by default, and a Route B film that should feel fast and designed. It changes the look and pacing, not the pointer and flicker rules. Its § Problem-and-turn films covers a film that makes an argument (problem, turn, payoff) rather than showing one flow. |
 | `references/reel-style.md` | A launch reel that shows breadth: claim-and-proof sections cut to the music's bar lines on flat brand plates. |
 | `references/live-dom.md` | Product UI that must move at close range (typing, hover, menus, state changes): capture the real UI as DOM snapshots on fictional data and mount it live instead of rebuilding it. |
 | `references/paper-collage.md` | Route D, before anything else. It replaces the rest of this file for that route. |
@@ -108,7 +108,7 @@ The UI on screen must be the product's own components, not a mock-up.
 - Before mirroring any UI, check for recent redesigns (`git log --since="1 month ago" -- <ui paths>`). Stale UI costs a full review round.
 - Fonts: Routes A–C load web fonts at render time, and the renderer waits for `document.fonts.ready`. Route D uses local font files only (`tools/fetch-fonts.mjs`).
 - Data on screen is fictional and looks real at a glance: fictional people, companies and emails (`@example.com`), never real customers.
-- An AI agent at work appears as an agent chat window: a header, the person's messages, typing dots, a tool card for each command it runs (with that command's real output), its answers, and a composer. Never a terminal, unless the film is about a command-line tool. Viewers read a terminal as setup they would have to do themselves, and two review rounds replaced terminals with chat windows.
+- An AI agent at work appears as an agent chat window: a header, the person's messages, typing dots, a tool card for each command it runs (with that command's real output), its answers, and a composer. Never a terminal, unless the film is about a command-line tool. Viewers read a terminal as setup they would have to do themselves, and two review rounds replaced terminals with chat windows. One exception: when the film is about agents reading or working inside a shared document, the agents may appear as a small cast of 3–5 tokens, each in a different material, that land on words in the document, highlight them and ask short questions (`references/kinetic-style.md § Problem-and-turn films`). A chat window would take the viewer out of the document the film is about. Show any command an agent runs in a chat window, as above.
 
 When a component is not available in code, rebuild it from the product's tokens and shipped CSS, and say so on the review page.
 
