@@ -23,5 +23,8 @@ jobs:
       - name: Shell, Node, Python and JSON syntax
         run: dev-scripts/check-syntax.sh
 
+      - name: Parallel rendering worker regression tests
+        run: bash dev-scripts/test-render-workers.sh
+
       - name: Shellcheck
         run: shellcheck -S error bin/*.sh dev-scripts/*.sh $(find product-film -name '*.sh')
